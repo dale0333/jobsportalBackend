@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             AllUsersSeeder::class,
             JobConfigSeeder::class,
+            JobVacancySeeder::class
         ]);
     }
 }

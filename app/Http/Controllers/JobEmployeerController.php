@@ -157,10 +157,10 @@ class JobEmployeerController extends Controller
         }
     }
 
-    public function destroy(Request $request, string $code)
+    public function destroy(Request $request, string $id)
     {
         try {
-            $job = JobVacancy::where('code', $code)->first();
+            $job = JobVacancy::find($id);
 
             if (!$job) {
                 return $this->errorResponse('Job not found', 404);

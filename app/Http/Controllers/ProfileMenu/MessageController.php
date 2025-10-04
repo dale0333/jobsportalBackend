@@ -38,8 +38,8 @@ class MessageController extends Controller
             $unseenCount = $this->chatNotSeenCount($authUserId, $otherUserId);
 
             $avatar = $otherUser->avatar
-                ? asset("storage/avatars/{$otherUser->avatar}")
-                : asset("storage/avatars/avatar-" . rand(1, 10) . ".jpg");
+                ? asset("avatars/{$otherUser->avatar}")
+                : asset("avatars/avatar-" . rand(1, 10) . ".jpg");
 
             return [
                 'id'              => $otherUser->id,

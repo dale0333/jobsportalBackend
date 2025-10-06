@@ -60,8 +60,8 @@ class MessageController extends Controller
                 ->get()
                 ->map(function ($user) {
                     $avatar = $user->avatar
-                        ? asset("storage/avatars/{$user->avatar}")
-                        : asset("storage/avatars/avatar-" . rand(1, 10) . ".jpg");
+                        ? asset("avatars/{$user->avatar}")
+                        : asset("avatars/avatar-" . rand(1, 10) . ".jpg");
 
                     return [
                         'id'              => $user->id,

@@ -10,13 +10,11 @@
 namespace PHPUnit\TextUI\Command;
 
 use const PHP_EOL;
-use function assert;
 use function file_put_contents;
 use function ksort;
 use function sprintf;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Runner\PhptTestCase;
-use ReflectionClass;
 use XMLWriter;
 
 /**
@@ -72,13 +70,9 @@ final readonly class ListTestsAsXmlCommand implements Command
                         $writer->endElement();
                     }
 
-                    $file = (new ReflectionClass($test))->getFileName();
-
-                    assert($file !== false);
-
                     $writer->startElement('testClass');
                     $writer->writeAttribute('name', $test::class);
-                    $writer->writeAttribute('file', $file);
+                    $writer->writeAttribute('file', $test->valueObjectForEvents()->file());
 
                     $currentTestClass = $test::class;
                 }
@@ -114,7 +108,7 @@ final readonly class ListTestsAsXmlCommand implements Command
 
         foreach ($groups as $groupName => $testIds) {
             $writer->startElement('group');
-            $writer->writeAttribute('name', (string) $groupName);
+            $writer->writeAttribute('name', $groupName);
 
             foreach ($testIds as $testId) {
                 $writer->startElement('test');

@@ -58,11 +58,9 @@ trait HasRelationships
     /**
      * Get the dynamic relation resolver if defined or inherited, or return null.
      *
-     * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
-     *
-     * @param  class-string<TRelatedModel>  $class
+     * @param  string  $class
      * @param  string  $key
-     * @return Closure|null
+     * @return mixed
      */
     public function relationResolver($class, $key)
     {
@@ -110,7 +108,7 @@ trait HasRelationships
 
         $localKey = $localKey ?: $this->getKeyName();
 
-        return $this->newHasOne($instance->newQuery(), $this, $instance->qualifyColumn($foreignKey), $localKey);
+        return $this->newHasOne($instance->newQuery(), $this, $instance->getTable().'.'.$foreignKey, $localKey);
     }
 
     /**
@@ -198,9 +196,11 @@ trait HasRelationships
 
         [$type, $id] = $this->getMorphs($name, $type, $id);
 
+        $table = $instance->getTable();
+
         $localKey = $localKey ?: $this->getKeyName();
 
-        return $this->newMorphOne($instance->newQuery(), $this, $instance->qualifyColumn($type), $instance->qualifyColumn($id), $localKey);
+        return $this->newMorphOne($instance->newQuery(), $this, $table.'.'.$type, $table.'.'.$id, $localKey);
     }
 
     /**
@@ -429,7 +429,7 @@ trait HasRelationships
         $localKey = $localKey ?: $this->getKeyName();
 
         return $this->newHasMany(
-            $instance->newQuery(), $this, $instance->qualifyColumn($foreignKey), $localKey
+            $instance->newQuery(), $this, $instance->getTable().'.'.$foreignKey, $localKey
         );
     }
 
@@ -525,9 +525,11 @@ trait HasRelationships
         // get the table and create the relationship instances for the developers.
         [$type, $id] = $this->getMorphs($name, $type, $id);
 
+        $table = $instance->getTable();
+
         $localKey = $localKey ?: $this->getKeyName();
 
-        return $this->newMorphMany($instance->newQuery(), $this, $instance->qualifyColumn($type), $instance->qualifyColumn($id), $localKey);
+        return $this->newMorphMany($instance->newQuery(), $this, $table.'.'.$type, $table.'.'.$id, $localKey);
     }
 
     /**
@@ -849,10 +851,8 @@ trait HasRelationships
     /**
      * Create a new model instance for a related model.
      *
-     * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
-     *
-     * @param  class-string<TRelatedModel>  $class
-     * @return TRelatedModel
+     * @param  string  $class
+     * @return mixed
      */
     protected function newRelatedInstance($class)
     {
@@ -866,10 +866,8 @@ trait HasRelationships
     /**
      * Create a new model instance for a related "through" model.
      *
-     * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
-     *
-     * @param  class-string<TRelatedModel>  $class
-     * @return TRelatedModel
+     * @param  string  $class
+     * @return mixed
      */
     protected function newRelatedThroughInstance($class)
     {

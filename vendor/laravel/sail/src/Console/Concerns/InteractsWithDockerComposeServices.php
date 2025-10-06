@@ -8,18 +8,6 @@ use Symfony\Component\Yaml\Yaml;
 trait InteractsWithDockerComposeServices
 {
     /**
-     * Possible names for the compose file according to the spec.
-     *
-     * @var array<string>
-     */
-    protected $composePaths = [
-        'compose.yaml',
-        'compose.yml',
-        'docker-compose.yaml',
-        'docker-compose.yml',
-    ];
-
-    /**
      * The available services that may be installed.
      *
      * @var array<string>
@@ -30,13 +18,11 @@ trait InteractsWithDockerComposeServices
         'mariadb',
         'mongodb',
         'redis',
-        'valkey',
         'memcached',
         'meilisearch',
         'typesense',
         'minio',
         'mailpit',
-        'rabbitmq',
         'selenium',
         'soketi',
     ];
@@ -74,11 +60,11 @@ trait InteractsWithDockerComposeServices
      */
     protected function buildDockerCompose(array $services)
     {
-        $composePath = $this->composePath();
+        $composePath = base_path('docker-compose.yml');
 
         $compose = file_exists($composePath)
             ? Yaml::parseFile($composePath)
-            : Yaml::parse(file_get_contents(__DIR__ . '/../../../stubs/compose.stub'));
+            : Yaml::parse(file_get_contents(__DIR__ . '/../../../stubs/docker-compose.stub'));
 
         // Prepare the installation of the "mariadb-client" package if the MariaDB service is used...
         if (in_array('mariadb', $services)) {
@@ -96,7 +82,7 @@ trait InteractsWithDockerComposeServices
                 ->all();
         }
 
-        // Add the services to the compose.yaml...
+        // Add the services to the docker-compose.yml...
         collect($services)
             ->filter(function ($service) use ($compose) {
                 return ! array_key_exists($service, $compose['services'] ?? []);
@@ -107,7 +93,7 @@ trait InteractsWithDockerComposeServices
         // Merge volumes...
         collect($services)
             ->filter(function ($service) {
-                return in_array($service, ['mysql', 'pgsql', 'mariadb', 'mongodb', 'redis', 'valkey', 'meilisearch', 'typesense', 'minio', 'rabbitmq']);
+                return in_array($service, ['mysql', 'pgsql', 'mariadb', 'mongodb', 'redis', 'meilisearch', 'typesense', 'minio']);
             })->filter(function ($service) use ($compose) {
                 return ! array_key_exists($service, $compose['volumes'] ?? []);
             })->each(function ($service) use (&$compose) {
@@ -123,7 +109,7 @@ trait InteractsWithDockerComposeServices
 
         $yaml = str_replace('{{PHP_VERSION}}', $this->hasOption('php') ? $this->option('php') : '8.4', $yaml);
 
-        file_put_contents($composePath, $yaml);
+        file_put_contents($this->laravel->basePath('docker-compose.yml'), $yaml);
     }
 
     /**
@@ -178,10 +164,6 @@ trait InteractsWithDockerComposeServices
             $environment = str_replace('REDIS_HOST=127.0.0.1', 'REDIS_HOST=redis', $environment);
         }
 
-        if (in_array('valkey',$services)){
-            $environment = str_replace('REDIS_HOST=127.0.0.1', 'REDIS_HOST=valkey', $environment);
-        }
-
         if (in_array('mongodb', $services)) {
             $environment .= "\nMONGODB_URI=mongodb://mongodb:27017";
             $environment .= "\nMONGODB_DATABASE=laravel";
@@ -218,10 +200,6 @@ trait InteractsWithDockerComposeServices
             $environment = preg_replace("/^MAIL_PORT=(.*)/m", "MAIL_PORT=1025", $environment);
         }
 
-        if (in_array('rabbitmq', $services)) {
-            $environment = str_replace('RABBITMQ_HOST=127.0.0.1', 'RABBITMQ_HOST=rabbitmq', $environment);
-        }
-
         file_put_contents($this->laravel->basePath('.env'), $environment);
     }
 
@@ -243,14 +221,7 @@ trait InteractsWithDockerComposeServices
         $phpunit = file_get_contents($path);
 
         $phpunit = preg_replace('/^.*DB_CONNECTION.*\n/m', '', $phpunit);
-        $phpunit = str_replace(
-            [
-                '<!-- <env name="DB_DATABASE" value=":memory:"/> -->',
-                '<env name="DB_DATABASE" value=":memory:"/>',
-            ],
-            '<env name="DB_DATABASE" value="testing"/>',
-            $phpunit
-        );
+        $phpunit = str_replace('<!-- <env name="DB_DATABASE" value=":memory:"/> -->', '<env name="DB_DATABASE" value="testing"/>', $phpunit);
 
         file_put_contents($this->laravel->basePath('phpunit.xml'), $phpunit);
     }
@@ -324,17 +295,5 @@ trait InteractsWithDockerComposeServices
         return $process->run(function ($type, $line) {
             $this->output->write('    '.$line);
         });
-    }
-
-    /**
-     * Get the path to an existing Compose file or fall back to a default of `compose.yaml`.
-     *
-     * @return string
-     */
-    protected function composePath()
-    {
-        return collect($this->composePaths)
-            ->map(fn ($path) => $this->laravel->basePath($path))
-            ->first(fn ($path) => file_exists($path), $this->laravel->basePath('compose.yaml'));
     }
 }

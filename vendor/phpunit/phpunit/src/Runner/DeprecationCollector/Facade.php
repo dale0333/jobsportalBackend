@@ -12,8 +12,6 @@ namespace PHPUnit\Runner\DeprecationCollector;
 use PHPUnit\Event\EventFacadeIsSealedException;
 use PHPUnit\Event\Facade as EventFacade;
 use PHPUnit\Event\UnknownSubscriberTypeException;
-use PHPUnit\TestRunner\IssueFilter;
-use PHPUnit\TextUI\Configuration\Registry as ConfigurationRegistry;
 
 /**
  * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
@@ -22,8 +20,7 @@ use PHPUnit\TextUI\Configuration\Registry as ConfigurationRegistry;
  */
 final class Facade
 {
-    private static null|Collector|InIsolationCollector $collector = null;
-    private static bool $inIsolation                              = false;
+    private static ?Collector $collector = null;
 
     /**
      * @throws EventFacadeIsSealedException
@@ -32,13 +29,6 @@ final class Facade
     public static function init(): void
     {
         self::collector();
-    }
-
-    public static function initForIsolation(): void
-    {
-        self::collector();
-
-        self::$inIsolation = true;
     }
 
     /**
@@ -55,40 +45,12 @@ final class Facade
     /**
      * @throws EventFacadeIsSealedException
      * @throws UnknownSubscriberTypeException
-     *
-     * @return list<non-empty-string>
      */
-    public static function filteredDeprecations(): array
+    private static function collector(): Collector
     {
-        return self::collector()->filteredDeprecations();
-    }
-
-    /**
-     * @throws EventFacadeIsSealedException
-     * @throws UnknownSubscriberTypeException
-     */
-    public static function collector(): Collector|InIsolationCollector
-    {
-        if (self::$collector !== null) {
-            return self::$collector;
+        if (self::$collector === null) {
+            self::$collector = new Collector(EventFacade::instance());
         }
-
-        $issueFilter = new IssueFilter(
-            ConfigurationRegistry::get()->source(),
-        );
-
-        if (self::$inIsolation) {
-            self::$collector = new InIsolationCollector(
-                $issueFilter,
-            );
-
-            return self::$collector;
-        }
-
-        self::$collector = new Collector(
-            EventFacade::instance(),
-            $issueFilter,
-        );
 
         return self::$collector;
     }

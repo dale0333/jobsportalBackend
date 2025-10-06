@@ -638,7 +638,7 @@ class Repository implements ArrayAccess, CacheContract
      *
      * @return string|null
      */
-    public function getName()
+    protected function getName()
     {
         return $this->config['store'] ?? null;
     }

@@ -22,7 +22,7 @@ use App\Http\Controllers\ProfileMenu\{
 };
 
 
-Route::middleware(['SystemKey'])->group(function () {
+Route::middleware(['system.key'])->group(function () {
     // Public API routes
     Route::post('/login', [AuthController::class, 'login']);
 

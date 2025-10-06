@@ -678,17 +678,6 @@ trait HasAttributes
     }
 
     /**
-     * Determine if any get mutator exists for an attribute.
-     *
-     * @param  string  $key
-     * @return bool
-     */
-    public function hasAnyGetMutator($key)
-    {
-        return $this->hasGetMutator($key) || $this->hasAttributeGetMutator($key);
-    }
-
-    /**
      * Get the value of an attribute using its mutator.
      *
      * @param  string  $key
@@ -1884,7 +1873,7 @@ trait HasAttributes
     /**
      * Get all of the current attributes on the model.
      *
-     * @return array<string, mixed>
+     * @return array
      */
     public function getAttributes()
     {

@@ -80,10 +80,8 @@ class OutputStyle extends SymfonyStyle implements NewLineAware
     #[\Override]
     public function writeln(string|iterable $messages, int $type = self::OUTPUT_NORMAL): void
     {
-        if ($this->output->getVerbosity() >= $type) {
-            $this->newLinesWritten = $this->trailingNewLineCount($messages) + 1;
-            $this->newLineWritten = true;
-        }
+        $this->newLinesWritten = $this->trailingNewLineCount($messages) + 1;
+        $this->newLineWritten = true;
 
         parent::writeln($messages, $type);
     }

@@ -45,7 +45,7 @@ class Application extends Container implements ApplicationContract, CachesConfig
      *
      * @var string
      */
-    const VERSION = '11.46.1';
+    const VERSION = '11.37.0';
 
     /**
      * The base path for the Laravel installation.
@@ -223,7 +223,6 @@ class Application extends Container implements ApplicationContract, CachesConfig
         $this->registerBaseBindings();
         $this->registerBaseServiceProviders();
         $this->registerCoreContainerAliases();
-        $this->registerLaravelCloudServices();
     }
 
     /**
@@ -255,10 +254,7 @@ class Application extends Container implements ApplicationContract, CachesConfig
     {
         return match (true) {
             isset($_ENV['APP_BASE_PATH']) => $_ENV['APP_BASE_PATH'],
-            default => dirname(array_values(array_filter(
-                array_keys(ClassLoader::getRegisteredLoaders()),
-                fn ($path) => ! str_starts_with($path, 'phar://'),
-            ))[0]),
+            default => dirname(array_keys(ClassLoader::getRegisteredLoaders())[0]),
         };
     }
 
@@ -302,28 +298,6 @@ class Application extends Container implements ApplicationContract, CachesConfig
         $this->register(new LogServiceProvider($this));
         $this->register(new ContextServiceProvider($this));
         $this->register(new RoutingServiceProvider($this));
-    }
-
-    /**
-     * Register any services needed for Laravel Cloud.
-     *
-     * @return void
-     */
-    protected function registerLaravelCloudServices()
-    {
-        if (! laravel_cloud()) {
-            return;
-        }
-
-        $this['events']->listen(
-            'bootstrapping: *',
-            fn ($bootstrapper) => Cloud::bootstrapperBootstrapping($this, Str::after($bootstrapper, 'bootstrapping: '))
-        );
-
-        $this['events']->listen(
-            'bootstrapped: *',
-            fn ($bootstrapper) => Cloud::bootstrapperBootstrapped($this, Str::after($bootstrapper, 'bootstrapped: '))
-        );
     }
 
     /**
@@ -863,12 +837,12 @@ class Application extends Container implements ApplicationContract, CachesConfig
     public function registerConfiguredProviders()
     {
         $providers = (new Collection($this->make('config')->get('app.providers')))
-            ->partition(fn ($provider) => str_starts_with($provider, 'Illuminate\\'));
+                        ->partition(fn ($provider) => str_starts_with($provider, 'Illuminate\\'));
 
         $providers->splice(1, 0, [$this->make(PackageManifest::class)->providers()]);
 
         (new ProviderRepository($this, new Filesystem, $this->getCachedServicesPath()))
-            ->load($providers->collapse()->toArray());
+                    ->load($providers->collapse()->toArray());
 
         $this->fireAppCallbacks($this->registeredCallbacks);
     }
@@ -1043,11 +1017,9 @@ class Application extends Container implements ApplicationContract, CachesConfig
     /**
      * Resolve the given type from the container.
      *
-     * @template TClass of object
-     *
-     * @param  string|class-string<TClass>  $abstract
+     * @param  string  $abstract
      * @param  array  $parameters
-     * @return ($abstract is class-string<TClass> ? TClass : mixed)
+     * @return mixed
      *
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
@@ -1061,12 +1033,10 @@ class Application extends Container implements ApplicationContract, CachesConfig
     /**
      * Resolve the given type from the container.
      *
-     * @template TClass of object
-     *
-     * @param  string|class-string<TClass>|callable  $abstract
+     * @param  string  $abstract
      * @param  array  $parameters
      * @param  bool  $raiseEvents
-     * @return ($abstract is class-string<TClass> ? TClass : mixed)
+     * @return mixed
      *
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
      * @throws \Illuminate\Contracts\Container\CircularDependencyException

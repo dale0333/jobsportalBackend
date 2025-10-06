@@ -2,7 +2,6 @@
 
 namespace Illuminate\Database\Migrations;
 
-use Closure;
 use Illuminate\Console\View\Components\BulletList;
 use Illuminate\Console\View\Components\Info;
 use Illuminate\Console\View\Components\Task;
@@ -52,13 +51,6 @@ class Migrator
     protected $resolver;
 
     /**
-     * The custom connection resolver callback.
-     *
-     * @var \Closure|null
-     */
-    protected static $connectionResolverCallback;
-
-    /**
      * The name of the default connection.
      *
      * @var string
@@ -85,13 +77,6 @@ class Migrator
      * @var \Symfony\Component\Console\Output\OutputInterface
      */
     protected $output;
-
-    /**
-     * The pending migrations to skip.
-     *
-     * @var list<string>
-     */
-    protected static $withoutMigrations = [];
 
     /**
      * Create a new migrator instance.
@@ -149,25 +134,9 @@ class Migrator
      */
     protected function pendingMigrations($files, $ran)
     {
-        $migrationsToSkip = $this->migrationsToSkip();
-
         return (new Collection($files))
-            ->reject(fn ($file) => in_array($migrationName = $this->getMigrationName($file), $ran) ||
-                in_array($migrationName, $migrationsToSkip)
-            )
+            ->reject(fn ($file) => in_array($this->getMigrationName($file), $ran))
             ->values()
-            ->all();
-    }
-
-    /**
-     * Get list of pending migrations to skip.
-     *
-     * @return list<string>
-     */
-    protected function migrationsToSkip()
-    {
-        return (new Collection(self::$withoutMigrations))
-            ->map($this->getMigrationName(...))
             ->all();
     }
 
@@ -200,7 +169,7 @@ class Migrator
 
         $step = $options['step'] ?? false;
 
-        $this->fireMigrationEvent(new MigrationsStarted('up', $options));
+        $this->fireMigrationEvent(new MigrationsStarted('up'));
 
         $this->write(Info::class, 'Running migrations.');
 
@@ -215,7 +184,7 @@ class Migrator
             }
         }
 
-        $this->fireMigrationEvent(new MigrationsEnded('up', $options));
+        $this->fireMigrationEvent(new MigrationsEnded('up'));
 
         $this->output?->writeln('');
     }
@@ -309,7 +278,7 @@ class Migrator
 
         $this->requireFiles($files = $this->getMigrationFiles($paths));
 
-        $this->fireMigrationEvent(new MigrationsStarted('down', $options));
+        $this->fireMigrationEvent(new MigrationsStarted('down'));
 
         $this->write(Info::class, 'Rolling back migrations.');
 
@@ -333,7 +302,7 @@ class Migrator
             );
         }
 
-        $this->fireMigrationEvent(new MigrationsEnded('down', $options));
+        $this->fireMigrationEvent(new MigrationsEnded('down'));
 
         return $rolledBack;
     }
@@ -622,17 +591,6 @@ class Migrator
     }
 
     /**
-     * Set the pending migrations to skip.
-     *
-     * @param  list<string>  $migrations
-     * @return void
-     */
-    public static function withoutMigrations(array $migrations)
-    {
-        static::$withoutMigrations = $migrations;
-    }
-
-    /**
      * Get the default connection name.
      *
      * @return string
@@ -683,26 +641,7 @@ class Migrator
      */
     public function resolveConnection($connection)
     {
-        if (static::$connectionResolverCallback) {
-            return call_user_func(
-                static::$connectionResolverCallback,
-                $this->resolver,
-                $connection ?: $this->connection
-            );
-        } else {
-            return $this->resolver->connection($connection ?: $this->connection);
-        }
-    }
-
-    /**
-     * Set a connection resolver callback.
-     *
-     * @param  \Closure  $callback
-     * @return void
-     */
-    public static function resolveConnectionsUsing(Closure $callback)
-    {
-        static::$connectionResolverCallback = $callback;
+        return $this->resolver->connection($connection ?: $this->connection);
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{JobConfig, JobConfigDetail};
+use App\Models\{JobConfig, JobConfigDetail, Category};
 use App\Helpers\AppHelper;
 use Illuminate\Support\Str;
 
@@ -150,10 +150,24 @@ class ConfigDetailController extends Controller
         }
     }
 
+
+    // get job classifications with details
     public function fetchJobTypes()
     {
         try {
             $data = JobConfig::with('jobConfigDetails')->get();
+            return response()->json($data, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to process. ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function fetchJobCategories()
+    {
+        try {
+            $data = Category::with('subCategories')->get();
             return response()->json($data, 200);
         } catch (\Exception $e) {
             return response()->json([

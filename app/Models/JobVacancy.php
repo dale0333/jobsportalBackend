@@ -11,34 +11,39 @@ class JobVacancy extends Model
     protected $table = 'job_vacancies';
 
     protected $fillable = [
-        'user_id',
+        'employer_id',
         'title',
         'content',
         'code',
-        'job_service',
+        'job_category',
+        'job_sub_category',
         'job_location',
         'job_type',
         'job_qualify',
         'job_level',
-        'job_experince',
+        'job_experience',
         'salary',
+        'views',
+        'rates',
         'deadline',
         'is_active',
     ];
 
     protected $casts = [
+        'job_sub_category' => 'array',
         'deadline' => 'date',
         'is_active' => 'boolean',
     ];
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'job_category');
+    }
+
+    // attributes
     public function jobDetails($column)
     {
         return $this->belongsTo(JobConfigDetail::class, $column);
-    }
-
-    public function jobService()
-    {
-        return $this->jobDetails('job_service');
     }
 
     public function jobLocation()
@@ -59,6 +64,22 @@ class JobVacancy extends Model
     public function jobLevel()
     {
         return $this->jobDetails('job_level');
+    }
+
+    // views and ratings
+    public function views()
+    {
+        return $this->hasMany(JobView::class, 'job_id');
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(JobRating::class, 'job_id');
+    }
+
+    public function getAverageRatingAttribute()
+    {
+        return $this->ratings()->avg('rate') ?? 0;
     }
 
 

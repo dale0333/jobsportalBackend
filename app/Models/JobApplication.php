@@ -14,15 +14,19 @@ class JobApplication extends Model
         'job_vacancy_id',
         'cover_letter',
         'status',
-        'admin_notes',
-        'applied_at',
     ];
 
-    protected $casts = [
-        'applied_at' => 'datetime',
-    ];
+    // Polymorphic relationship for attachments
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
 
-    // Relationships
+    public function jobApplicationTransactions()
+    {
+        return $this->hasMany(JobApplicationTransaction::class);
+    }
+
     public function jobSeeker()
     {
         return $this->belongsTo(JobSeeker::class);
@@ -34,30 +38,30 @@ class JobApplication extends Model
     }
 
     // Scopes
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
-    }
+    // public function scopePending($query)
+    // {
+    //     return $query->where('status', 'pending');
+    // }
 
-    public function scopeShortlisted($query)
-    {
-        return $query->where('status', 'shortlisted');
-    }
+    // public function scopeShortlisted($query)
+    // {
+    //     return $query->where('status', 'shortlisted');
+    // }
 
-    public function scopeForInterview($query)
-    {
-        return $query->where('status', 'interview');
-    }
+    // public function scopeForInterview($query)
+    // {
+    //     return $query->where('status', 'interview');
+    // }
 
-    public function scopeHired($query)
-    {
-        return $query->where('status', 'hired');
-    }
+    // public function scopeHired($query)
+    // {
+    //     return $query->where('status', 'hired');
+    // }
 
-    public function scopeRejected($query)
-    {
-        return $query->where('status', 'rejected');
-    }
+    // public function scopeRejected($query)
+    // {
+    //     return $query->where('status', 'rejected');
+    // }
 
     // Helper methods
     public function markAsShortlisted()

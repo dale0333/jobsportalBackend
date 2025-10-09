@@ -13,29 +13,130 @@ class JobConfigSeeder extends Seeder
     {
         $now = Carbon::now();
 
+        $categories = [
+            ['name' => 'IT & Software', 'description' => 'Jobs in information technology and software development'],
+            ['name' => 'Finance & Accounting', 'description' => 'Roles in finance, accounting, and banking'],
+            ['name' => 'Healthcare', 'description' => 'Medical and healthcare-related job opportunities'],
+            ['name' => 'Education & Training', 'description' => 'Teaching and educational roles'],
+            ['name' => 'Sales & Marketing', 'description' => 'Positions in sales, marketing, and business development'],
+            ['name' => 'Customer Service', 'description' => 'Customer support and service-oriented jobs'],
+            ['name' => 'Engineering', 'description' => 'Engineering roles across various disciplines'],
+            ['name' => 'Human Resources', 'description' => 'HR management and recruitment positions'],
+            ['name' => 'Design & Creative', 'description' => 'Creative roles in design and multimedia'],
+            ['name' => 'Operations & Logistics', 'description' => 'Operations, supply chain and logistics positions'],
+        ];
+
+        $subCategories = [
+            // IT & Software
+            ['category' => 'IT & Software', 'name' => 'Software Development', 'description' => 'Jobs related to software engineering and development'],
+            ['category' => 'IT & Software', 'name' => 'Web Development', 'description' => 'Frontend and backend web development roles'],
+            ['category' => 'IT & Software', 'name' => 'Mobile Development', 'description' => 'iOS and Android app development positions'],
+            ['category' => 'IT & Software', 'name' => 'DevOps', 'description' => 'DevOps engineering and infrastructure roles'],
+            ['category' => 'IT & Software', 'name' => 'Network Administration', 'description' => 'Roles in managing and maintaining computer networks'],
+            ['category' => 'IT & Software', 'name' => 'Cybersecurity', 'description' => 'Positions focused on protecting systems and data'],
+            ['category' => 'IT & Software', 'name' => 'Data Science', 'description' => 'Jobs involving data analysis and machine learning'],
+            ['category' => 'IT & Software', 'name' => 'Database Administration', 'description' => 'Database management and administration roles'],
+            ['category' => 'IT & Software', 'name' => 'IT Support', 'description' => 'Technical support and helpdesk positions'],
+            ['category' => 'IT & Software', 'name' => 'Cloud Computing', 'description' => 'AWS, Azure, and Google Cloud platform roles'],
+
+            // Finance & Accounting
+            ['category' => 'Finance & Accounting', 'name' => 'Accounting', 'description' => 'Roles in bookkeeping, auditing, and financial reporting'],
+            ['category' => 'Finance & Accounting', 'name' => 'Financial Analysis', 'description' => 'Jobs analyzing financial data and trends'],
+            ['category' => 'Finance & Accounting', 'name' => 'Investment Banking', 'description' => 'Positions in investment banking and asset management'],
+            ['category' => 'Finance & Accounting', 'name' => 'Tax Accounting', 'description' => 'Tax preparation and planning specialists'],
+            ['category' => 'Finance & Accounting', 'name' => 'Corporate Finance', 'description' => 'Financial management within corporations'],
+            ['category' => 'Finance & Accounting', 'name' => 'Risk Management', 'description' => 'Financial risk assessment and mitigation'],
+            ['category' => 'Finance & Accounting', 'name' => 'Wealth Management', 'description' => 'Personal financial advising and planning'],
+
+            // Healthcare
+            ['category' => 'Healthcare', 'name' => 'Nursing', 'description' => 'Nursing roles in hospitals and clinics'],
+            ['category' => 'Healthcare', 'name' => 'Medical Research', 'description' => 'Jobs in clinical research and trials'],
+            ['category' => 'Healthcare', 'name' => 'Pharmacy', 'description' => 'Roles in pharmaceutical care and drug dispensing'],
+            ['category' => 'Healthcare', 'name' => 'Medical Practice', 'description' => 'Physicians and medical practitioners'],
+            ['category' => 'Healthcare', 'name' => 'Healthcare Administration', 'description' => 'Hospital and clinic management roles'],
+            ['category' => 'Healthcare', 'name' => 'Mental Health', 'description' => 'Psychologists, therapists, and counselors'],
+            ['category' => 'Healthcare', 'name' => 'Dentistry', 'description' => 'Dental care professionals'],
+
+            // Education & Training
+            ['category' => 'Education & Training', 'name' => 'Teaching', 'description' => 'Teaching positions in schools and educational institutions'],
+            ['category' => 'Education & Training', 'name' => 'Curriculum Development', 'description' => 'Jobs designing educational programs and materials'],
+            ['category' => 'Education & Training', 'name' => 'Educational Administration', 'description' => 'School and university administration roles'],
+            ['category' => 'Education & Training', 'name' => 'Tutoring', 'description' => 'Private tutoring and academic coaching'],
+            ['category' => 'Education & Training', 'name' => 'Corporate Training', 'description' => 'Employee training and development'],
+            ['category' => 'Education & Training', 'name' => 'Online Education', 'description' => 'E-learning and virtual teaching positions'],
+
+            // Sales & Marketing
+            ['category' => 'Sales & Marketing', 'name' => 'Digital Marketing', 'description' => 'Roles in online marketing and social media management'],
+            ['category' => 'Sales & Marketing', 'name' => 'Sales Management', 'description' => 'Positions leading sales teams and strategies'],
+            ['category' => 'Sales & Marketing', 'name' => 'Content Marketing', 'description' => 'Content creation and strategy roles'],
+            ['category' => 'Sales & Marketing', 'name' => 'SEO/SEM', 'description' => 'Search engine optimization and marketing specialists'],
+            ['category' => 'Sales & Marketing', 'name' => 'Brand Management', 'description' => 'Brand strategy and development positions'],
+            ['category' => 'Sales & Marketing', 'name' => 'Market Research', 'description' => 'Consumer and market analysis roles'],
+
+            // Customer Service
+            ['category' => 'Customer Service', 'name' => 'Customer Support', 'description' => 'Roles assisting customers with inquiries and issues'],
+            ['category' => 'Customer Service', 'name' => 'Call Center', 'description' => 'Call center and telephone support positions'],
+            ['category' => 'Customer Service', 'name' => 'Technical Support', 'description' => 'Technical assistance and troubleshooting'],
+            ['category' => 'Customer Service', 'name' => 'Client Success', 'description' => 'Customer success and account management'],
+            ['category' => 'Customer Service', 'name' => 'Customer Experience', 'description' => 'CX strategy and improvement roles'],
+
+            // Engineering
+            ['category' => 'Engineering', 'name' => 'Civil Engineering', 'description' => 'Infrastructure and construction engineering'],
+            ['category' => 'Engineering', 'name' => 'Mechanical Engineering', 'description' => 'Machine and mechanical systems design'],
+            ['category' => 'Engineering', 'name' => 'Electrical Engineering', 'description' => 'Electrical systems and electronics engineering'],
+            ['category' => 'Engineering', 'name' => 'Chemical Engineering', 'description' => 'Chemical process and production engineering'],
+            ['category' => 'Engineering', 'name' => 'Industrial Engineering', 'description' => 'Process optimization and systems engineering'],
+            ['category' => 'Engineering', 'name' => 'Aerospace Engineering', 'description' => 'Aircraft and spacecraft engineering roles'],
+
+            // Human Resources
+            ['category' => 'Human Resources', 'name' => 'Recruitment', 'description' => 'Talent acquisition and recruiting positions'],
+            ['category' => 'Human Resources', 'name' => 'HR Management', 'description' => 'Human resources leadership roles'],
+            ['category' => 'Human Resources', 'name' => 'Compensation & Benefits', 'description' => 'Salary and benefits administration'],
+            ['category' => 'Human Resources', 'name' => 'Employee Relations', 'description' => 'Workplace relations and conflict resolution'],
+            ['category' => 'Human Resources', 'name' => 'Training & Development', 'description' => 'Employee training and career development'],
+
+            // Design & Creative
+            ['category' => 'Design & Creative', 'name' => 'Graphic Design', 'description' => 'Visual design and branding roles'],
+            ['category' => 'Design & Creative', 'name' => 'UI/UX Design', 'description' => 'User interface and experience design'],
+            ['category' => 'Design & Creative', 'name' => 'Video Production', 'description' => 'Video editing and production positions'],
+            ['category' => 'Design & Creative', 'name' => 'Photography', 'description' => 'Professional photography roles'],
+            ['category' => 'Design & Creative', 'name' => 'Animation', 'description' => '2D and 3D animation positions'],
+
+            // Operations & Logistics
+            ['category' => 'Operations & Logistics', 'name' => 'Supply Chain Management', 'description' => 'Supply chain and logistics coordination'],
+            ['category' => 'Operations & Logistics', 'name' => 'Warehouse Management', 'description' => 'Inventory and warehouse operations'],
+            ['category' => 'Operations & Logistics', 'name' => 'Procurement', 'description' => 'Purchasing and vendor management'],
+            ['category' => 'Operations & Logistics', 'name' => 'Project Management', 'description' => 'Project coordination and leadership'],
+            ['category' => 'Operations & Logistics', 'name' => 'Quality Assurance', 'description' => 'Quality control and process improvement'],
+        ];
+
+        foreach ($categories as $category) {
+            $categoryId = DB::table('categories')->insertGetId([
+                'name' => $category['name'],
+                'slug' => Str::slug($category['name']),
+                'description' => $category['description'],
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            // Insert sub-categories for this category
+            foreach ($subCategories as $subCategory) {
+                if ($subCategory['category'] === $category['name']) {
+                    DB::table('sub_categories')->insert([
+                        'category_id' => $categoryId,
+                        'name' => $subCategory['name'],
+                        'description' => $subCategory['description'],
+                        'is_active' => true,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
+            }
+        }
+
         // Define job config groups with icons and details
         $jobConfigs = [
-            [
-                'name' => 'Services',
-                'icon' => 'ri-apps-2-line',
-                'description' => 'Professional services and industries',
-                'details' => [
-                    // Technical Services
-                    ['name' => 'Development', 'description' => 'Software development, web development, and programming services'],
-                    ['name' => 'Cloud Management', 'description' => 'Cloud infrastructure, deployment, and management services'],
-                    ['name' => 'Mobile Application Development', 'description' => 'iOS, Android, and cross-platform mobile app development'],
-                    ['name' => 'Web Development', 'description' => 'Frontend and backend web application development'],
-                    ['name' => 'DevOps Services', 'description' => 'CI/CD, infrastructure automation, and deployment services'],
-
-                    // Business Services
-                    ['name' => 'Information Technology', 'description' => 'IT-related jobs including software development, networking, and tech support'],
-                    ['name' => 'Finance Services', 'description' => 'Finance and accounting roles including banking, investment, and financial analysis'],
-                    ['name' => 'Human Resources', 'description' => 'HR roles including recruitment, training, and employee relations'],
-                    ['name' => 'Marketing Services', 'description' => 'Marketing and sales roles including digital marketing, advertising, and business development'],
-                    ['name' => 'Healthcare Services', 'description' => 'Medical and healthcare professions including doctors, nurses, and medical staff'],
-                    ['name' => 'Education Services', 'description' => 'Teaching and educational roles including teachers, professors, and trainers'],
-                ],
-            ],
             [
                 'name' => 'Types',
                 'icon' => 'ri-briefcase-2-line',

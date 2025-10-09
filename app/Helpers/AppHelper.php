@@ -2,7 +2,7 @@
 
 namespace App\Helpers;
 
-use App\Models\{UserLog, EmailSmtp};
+use App\Models\{UserLog, EmailSmtp, SubCategory};
 
 class AppHelper
 {
@@ -33,5 +33,26 @@ class AppHelper
         ];
 
         config(['mail.mailers.smtp' => $config]);
+    }
+
+    public static function getSubCategoryNames($jobSubCategory)
+    {
+        if (empty($jobSubCategory)) {
+            return [];
+        }
+
+        // Handle JSON or array input
+        if (is_string($jobSubCategory)) {
+            $jobSubCategory = json_decode($jobSubCategory, true);
+        }
+
+        if (!is_array($jobSubCategory)) {
+            return [];
+        }
+
+        // Fetch sub-category names
+        return SubCategory::whereIn('id', $jobSubCategory)
+            ->pluck('name')
+            ->toArray();
     }
 }

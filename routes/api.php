@@ -9,7 +9,8 @@ use App\Http\Controllers\{
     ConfigController,
     ConfigDetailController,
     JobEmployeerController,
-    JobSeekerController
+    JobSeekerController,
+    JobApplicationController
 };
 
 use App\Http\Controllers\Setting\{
@@ -43,8 +44,9 @@ Route::middleware(['system.key'])->group(function () {
         Route::apiResource('job-groups', ConfigController::class);
         Route::apiResource('job-items', ConfigDetailController::class);
 
-        Route::apiResource('job-employeer-lists', JobEmployeerController::class);
-        Route::apiResource('job-seeker-lists', JobSeekerController::class);
+        Route::apiResource('job-seekers', JobSeekerController::class);
+        Route::apiResource('job-employeers', JobEmployeerController::class);
+        Route::apiResource('job-applications', JobApplicationController::class);
 
         // Settings
         Route::apiResource('setting-email-smtp', EmailController::class);
@@ -54,5 +56,6 @@ Route::middleware(['system.key'])->group(function () {
         Route::apiResource('messages', MessageController::class);
 
         Route::get('fetch-job-types', [ConfigDetailController::class, 'fetchJobTypes']);
+        Route::get('fetch-job-categories', [ConfigDetailController::class, 'fetchJobCategories']);
     });
 });

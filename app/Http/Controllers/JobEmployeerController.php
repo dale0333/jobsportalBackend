@@ -48,35 +48,40 @@ class JobEmployeerController extends Controller
     {
         try {
             $validated = $request->validate([
-                'title'         => 'required|string|max:255',
-                'content'       => 'required|string',
-                'job_experince' => 'required|string|max:255',
-                'salary'        => 'nullable|string|max:255',
-                'deadline'      => 'required',
+                'title'            => 'required|string|max:255',
+                'content'          => 'required|string',
+                'job_experience'   => 'required|string|max:255',
+                'salary'           => 'nullable|string|max:255',
+                'deadline'         => 'required',
 
-                'job_service'  => 'required|integer|exists:job_config_details,id',
-                'job_location'  => 'required|integer|exists:job_config_details,id',
-                'job_type'      => 'required|integer|exists:job_config_details,id',
-                'job_qualify'   => 'required|integer|exists:job_config_details,id',
-                'job_level'     => 'required|integer|exists:job_config_details,id',
+                'job_category'     => 'required|integer|exists:categories,id',
+                'job_sub_category' => 'required|array',
+                'job_sub_category.*' => 'integer|exists:sub_categories,id',
+
+                'job_location'     => 'required|integer|exists:job_config_details,id',
+                'job_type'         => 'required|integer|exists:job_config_details,id',
+                'job_qualify'      => 'required|integer|exists:job_config_details,id',
+                'job_level'        => 'required|integer|exists:job_config_details,id',
+                'is_active'        => 'nullable|boolean',
             ]);
 
             $job = JobVacancy::create([
-                'user_id'       => $request->user()->id,
+                'employer_id'   => $request->user()->id,
                 'title'         => $validated['title'],
                 'content'       => $validated['content'],
-                'code'          => Str::upper(Str::random(8)),
+                'code'          => (string) Str::uuid(),
 
-                'job_service'  => $validated['job_service'],
+                'job_category'    => $validated['job_category'],
+                'job_sub_category' => $validated['job_sub_category'],
                 'job_location'  => $validated['job_location'],
                 'job_type'      => $validated['job_type'],
                 'job_qualify'   => $validated['job_qualify'],
                 'job_level'     => $validated['job_level'],
 
-                'job_experince' => $validated['job_experince'],
+                'job_experience' => $validated['job_experience'],
                 'salary'        => $validated['salary'] ?? null,
                 'deadline'      => Carbon::parse($validated['deadline'])->format('Y-m-d'),
-                'is_active'     => false,
+                'is_active'     => $validated['is_active'] ?? false,
             ]);
 
             AppHelper::userLog(
@@ -95,13 +100,34 @@ class JobEmployeerController extends Controller
     public function show(string $code)
     {
         try {
-            $job = JobVacancy::where('code', $code)->first();
+            $item = JobVacancy::where('code', $code)->first();
 
-            if (!$job) {
+            if (!$item) {
                 return $this->errorResponse('Job not found', 404);
             }
 
-            return $this->successResponse($job, 'Job retrieved successfully');
+            $data = [
+                'title'        => $item->title,
+                'content'      => $item->content,
+                'job_category'    => $item->job_category,
+                'job_sub_category' => $item->job_sub_category,
+
+                'job_location'   => $item->job_location,
+                'job_type'       => $item->job_type,
+                'job_qualify'    => $item->job_qualify,
+                'job_level'      => $item->job_level,
+
+                'job_experience' => $item->job_experience,
+                'salary'       => $item->salary,
+                'deadline'     => $item->deadline,
+                'is_active'     => $item->is_active,
+            ];
+
+            return response()->json([
+                'data' => $data,
+                'status' => true,
+                'message'  => "Job retrieved successfully",
+            ]);
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to fetch job', 500, $e->getMessage());
         }
@@ -117,31 +143,37 @@ class JobEmployeerController extends Controller
             }
 
             $validated = $request->validate([
-                'title'         => 'required|string|max:255',
-                'content'       => 'required|string',
-                'job_experince' => 'required|string|max:255',
-                'salary'        => 'nullable|string|max:255',
-                'deadline'      => 'required',
+                'title'            => 'required|string|max:255',
+                'content'          => 'required|string',
+                'job_experience'   => 'required|string|max:255',
+                'salary'           => 'nullable|string|max:255',
+                'deadline'         => 'required',
 
-                'job_service'  => 'required|integer|exists:job_config_details,id',
-                'job_location'  => 'required|integer|exists:job_config_details,id',
-                'job_type'      => 'required|integer|exists:job_config_details,id',
-                'job_qualify'   => 'required|integer|exists:job_config_details,id',
-                'job_level'     => 'required|integer|exists:job_config_details,id',
+                'job_category'     => 'required|integer|exists:categories,id',
+                'job_sub_category' => 'required|array',
+                'job_sub_category.*' => 'integer|exists:sub_categories,id',
+
+                'job_location'     => 'required|integer|exists:job_config_details,id',
+                'job_type'         => 'required|integer|exists:job_config_details,id',
+                'job_qualify'      => 'required|integer|exists:job_config_details,id',
+                'job_level'        => 'required|integer|exists:job_config_details,id',
+                'is_active'        => 'nullable|boolean',
             ]);
 
             $job->update([
-                'title'         => $validated['title'],
-                'content'       => $validated['content'],
-                'job_experince' => $validated['job_experince'],
-                'salary'        => $validated['salary'] ?? null,
-                'deadline'      => Carbon::parse($validated['deadline'])->format('Y-m-d'),
+                'title'           => $validated['title'],
+                'content'         => $validated['content'],
+                'job_experience'   => $validated['job_experience'],
+                'salary'          => $validated['salary'] ?? null,
+                'deadline'        => Carbon::parse($validated['deadline'])->format('Y-m-d'),
 
-                'job_service'  => $validated['job_service'],
-                'job_location'  => $validated['job_location'],
-                'job_type'      => $validated['job_type'],
-                'job_qualify'   => $validated['job_qualify'],
-                'job_level'     => $validated['job_level'],
+                'job_category'    => $validated['job_category'],
+                'job_sub_category' => $validated['job_sub_category'],
+                'job_location'    => $validated['job_location'],
+                'job_type'        => $validated['job_type'],
+                'job_qualify'     => $validated['job_qualify'],
+                'job_level'       => $validated['job_level'],
+                'is_active'       => $validated['is_active'] ?? $job->is_active,
             ]);
 
             AppHelper::userLog(
@@ -153,7 +185,11 @@ class JobEmployeerController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return $this->errorResponse('Validation failed', 422, $e->errors());
         } catch (\Exception $e) {
-            return $this->errorResponse('Something went wrong while updating the job.', 500, $e->getMessage());
+            return $this->errorResponse(
+                'Something went wrong while updating the job.',
+                500,
+                config('app.debug') ? $e->getMessage() : null
+            );
         }
     }
 

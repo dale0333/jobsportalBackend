@@ -16,216 +16,90 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('phone')->nullable();
-            $table->text('address')->nullable();
-            $table->string('company_name')->nullable();
-            $table->string('contact_person')->nullable();
+
+            $table->text('bio')->nullable();
+            $table->string('address')->nullable();
+            $table->string('telephone')->nullable();
+            $table->string('avatar')->nullable();
+            $table->string('cover_photo')->nullable();
+
+            $table->boolean('is_email')->default(false);
+            $table->boolean('is_sms')->default(false);
+            $table->boolean('is_online')->default(true);
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_verified')->default(false);
             $table->rememberToken();
             $table->softDeletes();
             $table->timestamps();
         });
 
-        // Job seekers table
         Schema::create('job_seekers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->date('date_of_birth')->nullable();
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
             $table->string('education_level')->nullable();
             $table->string('field_of_study')->nullable();
             $table->json('skills')->nullable();
+            $table->json('services')->nullable();
             $table->integer('years_of_experience')->default(0);
-            $table->string('current_location')->nullable();
             $table->string('preferred_location')->nullable();
             $table->decimal('expected_salary', 10, 2)->nullable();
-            $table->string('resume_file_path')->nullable();
-            $table->text('bio')->nullable();
             $table->boolean('is_available')->default(true);
             $table->timestamps();
         });
 
-        // Employers table
         Schema::create('employers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('company_size')->nullable();
             $table->string('industry')->nullable();
-            $table->string('company_address')->nullable();
-            $table->string('website')->nullable();
-            $table->text('company_description')->nullable();
-            $table->boolean('is_verified')->default(false);
             $table->timestamps();
         });
 
-        // PESO Schools table
         Schema::create('peso_schools', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('school_type')->nullable();
             $table->string('accreditation_status')->nullable();
             $table->integer('total_students')->nullable();
             $table->json('courses_offered')->nullable();
-            $table->string('school_address')->nullable();
-            $table->string('website')->nullable();
-            $table->text('description')->nullable();
-            $table->boolean('is_verified')->default(false);
             $table->timestamps();
         });
 
-        // Manpower Agencies table
         Schema::create('manpower_agencies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('license_number')->nullable();
             $table->json('services_offered')->nullable();
             $table->integer('years_in_operation')->nullable();
-            $table->string('agency_address')->nullable();
-            $table->string('website')->nullable();
-            $table->text('description')->nullable();
-            $table->boolean('is_verified')->default(false);
             $table->timestamps();
         });
 
-        // Job vacancies table -
-        Schema::create('job_vacancies', function (Blueprint $table) {
+        Schema::create('social_medias', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('title');
-            $table->text('content');
-            $table->string('code');
-
-            $table->integer('job_service');
-            $table->integer('job_location');
-            $table->integer('job_type');
-            $table->integer('job_qualify');
-            $table->integer('job_level');
-
-            $table->string('job_experince');
-            $table->string('salary')->nullable();
-
-            $table->date('deadline')->nullable();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('name')->nullable();
+            $table->string('description')->nullable();
+            $table->string('url')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 
-        // Job applications table
-        Schema::create('job_applications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('job_seeker_id')->constrained('job_seekers')->onDelete('cascade');
-            $table->foreignId('job_vacancy_id')->constrained('job_vacancies')->onDelete('cascade');
-            $table->text('cover_letter')->nullable();
-            $table->enum('status', ['pending', 'shortlisted', 'interview', 'rejected', 'hired'])->default('pending');
-            $table->text('admin_notes')->nullable();
-            $table->timestamp('applied_at')->useCurrent();
-            $table->timestamps();
-
-            $table->unique(['job_seeker_id', 'job_vacancy_id']);
-        });
-
-        // Trainings table (for PESO Schools)
-        Schema::create('trainings', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('peso_school_id')->constrained('peso_schools')->onDelete('cascade');
-            $table->string('title');
-            $table->text('description');
-            $table->string('category');
-            $table->date('start_date');
-            $table->date('end_date');
-            $table->string('location');
-            $table->integer('max_participants')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
-
-        // Training applications table
-        Schema::create('training_applications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('job_seeker_id')->constrained('job_seekers')->onDelete('cascade');
-            $table->foreignId('training_id')->constrained('trainings')->onDelete('cascade');
-            $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
-            $table->text('notes')->nullable();
-            $table->timestamp('applied_at')->useCurrent();
-            $table->timestamps();
-
-            $table->unique(['job_seeker_id', 'training_id']);
-        });
-
-        // Overseas jobs table (for Manpower Agencies)
-        Schema::create('overseas_jobs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('manpower_agency_id')->constrained('manpower_agencies')->onDelete('cascade');
-            $table->string('job_title');
-            $table->text('job_description');
-            $table->string('country');
-            $table->string('city');
-            $table->string('industry');
-            $table->decimal('salary', 10, 2)->nullable();
-            $table->string('contract_period')->nullable();
-            $table->json('requirements')->nullable();
-            $table->json('benefits')->nullable();
-            $table->date('application_deadline')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
-
-        // Overseas job applications table
-        Schema::create('overseas_job_applications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('job_seeker_id')->constrained('job_seekers')->onDelete('cascade');
-            $table->foreignId('overseas_job_id')->constrained('overseas_jobs')->onDelete('cascade');
-            $table->text('cover_letter')->nullable();
-            $table->enum('status', ['pending', 'shortlisted', 'processing', 'rejected', 'approved'])->default('pending');
-            $table->text('agency_notes')->nullable();
-            $table->timestamp('applied_at')->useCurrent();
-            $table->timestamps();
-
-            $table->unique(['job_seeker_id', 'overseas_job_id']);
-        });
-
-        // Reports table
-        Schema::create('reports', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->enum('report_type', ['manpower', 'employment', 'attrition', 'monthly_manpower', 'training', 'overseas']);
-            $table->string('period');
-            $table->json('report_data');
-            $table->text('notes')->nullable();
-            $table->enum('status', ['draft', 'submitted', 'approved', 'rejected'])->default('draft');
-            $table->timestamp('submitted_at')->nullable();
-            $table->timestamps();
-        });
-
-        // Notifications table
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('type');
             $table->string('title');
             $table->text('message');
             $table->json('data')->nullable();
             $table->boolean('is_read')->default(false);
-            $table->timestamp('sent_at')->useCurrent();
-            $table->timestamps();
-        });
-
-        // Bulk uploads table (for PESO/School)
-        Schema::create('bulk_uploads', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('uploaded_by')->constrained('users')->onDelete('cascade');
-            $table->string('filename');
-            $table->string('file_path');
-            $table->integer('total_records');
-            $table->integer('successful_records')->default(0);
-            $table->integer('failed_records')->default(0);
-            $table->json('processing_errors')->nullable();
-            $table->enum('status', ['pending', 'processing', 'completed', 'failed'])->default('pending');
             $table->timestamps();
         });
 
         Schema::create('user_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('action');
             $table->timestamps();
         });
@@ -238,8 +112,8 @@ return new class extends Migration
             $table->string('password');
             $table->string('encryption');
             $table->boolean('is_active')->default(false);
-            $table->timestamps();
             $table->softDeletes();
+            $table->timestamps();
         });
 
         Schema::create('announcements', function (Blueprint $table) {
@@ -273,21 +147,15 @@ return new class extends Migration
     {
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('bulk_uploads');
+        Schema::dropIfExists('announcements');
+        Schema::dropIfExists('email_smtps');
+        Schema::dropIfExists('user_logs');
         Schema::dropIfExists('notifications');
-        Schema::dropIfExists('reports');
-        Schema::dropIfExists('overseas_job_applications');
-        Schema::dropIfExists('overseas_jobs');
-        Schema::dropIfExists('training_applications');
-        Schema::dropIfExists('trainings');
-        Schema::dropIfExists('job_applications');
-        Schema::dropIfExists('job_vacancies');
+        Schema::dropIfExists('social_medias');
         Schema::dropIfExists('manpower_agencies');
         Schema::dropIfExists('peso_schools');
         Schema::dropIfExists('employers');
         Schema::dropIfExists('job_seekers');
-        Schema::dropIfExists('email_smtps');
-        Schema::dropIfExists('user_logs');
         Schema::dropIfExists('users');
     }
 };

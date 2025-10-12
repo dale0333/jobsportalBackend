@@ -44,7 +44,7 @@ return new class extends Migration
             $table->json('services')->nullable();
             $table->integer('years_of_experience')->default(0);
             $table->string('preferred_location')->nullable();
-            $table->decimal('expected_salary', 10, 2)->nullable();
+            $table->string('expected_salary')->nullable();
             $table->boolean('is_available')->default(true);
             $table->timestamps();
         });

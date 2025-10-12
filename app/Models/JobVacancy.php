@@ -93,6 +93,7 @@ class JobVacancy extends Model
         return $this->belongsTo(Employer::class);
     }
 
+    // ===================================================
     public function jobApplications()
     {
         return $this->hasMany(JobApplication::class);
@@ -104,6 +105,9 @@ class JobVacancy extends Model
             ->withTimestamps()
             ->withPivot('status', 'cover_letter');
     }
+
+
+
 
     // Scopes
     public function scopeActive($query)

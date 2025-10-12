@@ -16,19 +16,17 @@ class JobSeeker extends Model
         'education_level',
         'field_of_study',
         'skills',
+        'services',
         'years_of_experience',
-        'current_location',
         'preferred_location',
         'expected_salary',
-        'resume_file_path',
-        'bio',
         'is_available',
     ];
 
     protected $casts = [
+        'services' => 'array',
         'skills' => 'array',
         'date_of_birth' => 'date',
-        'expected_salary' => 'decimal:2',
         'is_available' => 'boolean',
     ];
 

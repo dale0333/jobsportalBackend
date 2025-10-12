@@ -17,11 +17,16 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'phone',
+        'bio',
         'address',
-        'company_name',
-        'contact_person',
+        'telephone',
+        'avatar',
+        'cover_photo',
+        'is_email',
+        'is_sms',
+        'is_online',
         'is_active',
+        'is_verified',
     ];
 
     protected $hidden = [
@@ -96,6 +101,17 @@ class User extends Authenticatable
     {
         return $this->hasOne(Employer::class);
     }
+
+    public function socialMedias()
+    {
+        return $this->hasMany(SocialMedia::class);
+    }
+
+
+
+
+
+
 
     public function notifications()
     {

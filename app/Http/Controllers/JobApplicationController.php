@@ -18,6 +18,7 @@ class JobApplicationController extends Controller
             $perPage = $request->input('per_page', 10);
             $search  = $request->input('search');
             $status  = $request->input('status');
+            $type  = $request->input('type');
 
             $query = JobApplication::with([
                 'jobSeeker.user',
@@ -25,6 +26,10 @@ class JobApplicationController extends Controller
                 'attachments',
                 'jobApplicationTransactions'
             ]);
+
+            if ($type === 'user') {
+                $query->where('job_seeker_id',  $request->user()->jobSeeker->id);
+            }
 
             // 🔍 Search by applicant name or job title
             if ($search) {

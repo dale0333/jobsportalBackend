@@ -13,14 +13,6 @@ class Employer extends Model
         'user_id',
         'company_size',
         'industry',
-        'company_address',
-        'website',
-        'company_description',
-        'is_verified',
-    ];
-
-    protected $casts = [
-        'is_verified' => 'boolean',
     ];
 
     // Relationships

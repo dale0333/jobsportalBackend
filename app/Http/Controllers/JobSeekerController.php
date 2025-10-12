@@ -130,6 +130,7 @@ class JobSeekerController extends Controller
                 'jobLevel',
                 'views',
                 'ratings',
+                'employer'
             ])->where('code', $code)->first();
 
             if (!$item) {
@@ -148,17 +149,15 @@ class JobSeekerController extends Controller
             }
 
             $company = [
-                "name" => "Tech Solutions Inc.",
-                "logo" => "",
-                "industry" => "Information Technology",
-                "size" => "100-500 employees",
-                "website" => "https://www.techsolutions.com",
-                "location" => "123 Tech Street, Silicon Valley, CA",
-                'founded' => 2010,
-                'phone' => '+1 (555) 123-4567',
-                'email' => 'test@mail.com',
-                'telephone' => '+1 (555) 987-6543',
-                "description" => "Tech Solutions Inc. is a leading provider of innovative technology solutions, specializing in software development, cloud computing, and IT consulting services. We are committed to delivering cutting-edge solutions that drive business success for our clients."
+                "name" => $item->employer->user->name,
+                "logo" => $item->employer->user->avatar,
+                "industry" => $item->employer->industry,
+                "size" => $item->employer->company_size,
+                "website" =>  $item->employer->user->socialMedias,
+                "location" => $item->employer->user->address,
+                'telephone' => $item->employer->user->telephone,
+                'email' => $item->employer->user->email,
+                "description" => $item->employer->user->bio
             ];
 
             $seekerRate = $request->user()
@@ -173,12 +172,14 @@ class JobSeekerController extends Controller
                 'title'        => $item->title,
                 'code'         => $item->code,
                 'content'      => $item->content,
+
                 'category'     => optional($item->category)->name,
                 'sub_categories' => AppHelper::getSubCategoryNames($item->job_sub_category),
                 'job_location' => optional($item->jobLocation)->name,
                 'job_type'     => optional($item->jobType)->name,
                 'job_qualify'  => optional($item->jobQualify)->name,
                 'job_level'    => optional($item->jobLevel)->name,
+
                 'job_experience' => $item->job_experience,
                 'salary'       => $item->salary,
                 'deadline'     => $item->deadline,
@@ -208,7 +209,7 @@ class JobSeekerController extends Controller
             // Create job application
             $application = JobApplication::create([
                 'job_vacancy_id' => $request->job_id,
-                'job_seeker_id' => $request->user()->id,
+                'job_seeker_id' => $request->user()->jobSeeker?->id,
                 'cover_letter' => $request->coverLetter,
                 'status' => 'pending',
             ]);

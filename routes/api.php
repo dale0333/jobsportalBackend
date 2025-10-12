@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\{
@@ -10,7 +9,9 @@ use App\Http\Controllers\{
     ConfigDetailController,
     JobEmployeerController,
     JobSeekerController,
-    JobApplicationController
+    JobApplicationController,
+    UserLogController,
+    ProfileSettingController
 };
 
 use App\Http\Controllers\Setting\{
@@ -23,21 +24,16 @@ use App\Http\Controllers\ProfileMenu\{
 };
 
 
-Route::middleware(['system.key'])->group(function () {
-    // Public API routes
-    Route::post('/login', [AuthController::class, 'login']);
-
+Route::middleware(['system.key', 'throttle:20,1'])->group(function () {
     Route::get('/secure-data', function () {
         return ['message' => 'You passed the system key check!'];
     });
 
+    // Private Request =======================================
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/user', function (Request $request) {
-            return $request->user();
-        });
 
-
+        Route::apiResource('profile-setting', ProfileSettingController::class);
         Route::apiResource('manage-users', UserController::class);
 
         // Job Configs
@@ -54,8 +50,15 @@ Route::middleware(['system.key'])->group(function () {
 
         // Profile Menus
         Route::apiResource('messages', MessageController::class);
+        Route::apiResource('user-logs', UserLogController::class);
 
-        Route::get('fetch-job-types', [ConfigDetailController::class, 'fetchJobTypes']);
-        Route::get('fetch-job-categories', [ConfigDetailController::class, 'fetchJobCategories']);
+        Route::post('change-password', [ProfileSettingController::class, 'changePassword']);
     });
+
+    // Public Reqeusts ======================================================
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+
+    Route::get('fetch-job-types', [ConfigDetailController::class, 'fetchJobTypes']);
+    Route::get('fetch-job-categories', [ConfigDetailController::class, 'fetchJobCategories']);
 });

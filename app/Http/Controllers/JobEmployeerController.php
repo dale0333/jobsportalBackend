@@ -17,27 +17,29 @@ class JobEmployeerController extends Controller
     public function index(Request $request)
     {
         try {
-            $perPage = $request->input('per_page', 10);
+            $perPage = (int) $request->input('per_page', 10);
             $search  = $request->input('search');
-            $status  = $request->input('status', null);
+            $status  = $request->input('status');
 
-            $query = JobVacancy::query();
+            $query = JobVacancy::with(['employer'])
+                ->where('employer_id', $request->user()->employer->id);
 
             if ($search) {
                 $query->where('title', 'like', "%{$search}%");
             }
 
-            if ($status !== null) {
+            if (!is_null($status)) {
                 $query->where('is_active', $status);
             }
 
-            $data = $query->latest()->paginate($perPage);
+            $jobs = $query->latest()->paginate($perPage);
 
             return response()->json([
-                'data'         => $data->items(),
-                'total'        => $data->total(),
-                'per_page'     => $data->perPage(),
-                'current_page' => $data->currentPage(),
+                'success'      => true,
+                'data'         => $jobs->items(),
+                'total'        => $jobs->total(),
+                'per_page'     => $jobs->perPage(),
+                'current_page' => $jobs->currentPage(),
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to fetch jobs', 500, $e->getMessage());

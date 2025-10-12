@@ -52,7 +52,7 @@ class AllUsersSeeder extends Seeder
                 'education_level' => $faker->randomElement($educationLevels),
                 'field_of_study' => $faker->randomElement($fieldsOfStudy),
                 'skills' => json_encode($faker->randomElements($skills, $faker->numberBetween(3, 8))),
-                'services' => json_encode($faker->randomElements(['Resume Writing', 'Interview Coaching', 'Portfolio Design'], $faker->numberBetween(1, 2))),
+                'services' => json_encode($faker->randomElements(range(1, 20), $faker->numberBetween(2, 4))),
                 'years_of_experience' => $faker->numberBetween(0, 20),
                 'preferred_location' => $faker->randomElement($locations),
                 'expected_salary' => $faker->numberBetween(20000, 80000),

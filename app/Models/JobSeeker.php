@@ -41,6 +41,27 @@ class JobSeeker extends Model
         return $this->hasMany(JobApplication::class);
     }
 
+    public function experiences()
+    {
+        return $this->hasMany(Experience::class);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public function appliedJobs()
     {
         return $this->belongsToMany(JobVacancy::class, 'job_applications')

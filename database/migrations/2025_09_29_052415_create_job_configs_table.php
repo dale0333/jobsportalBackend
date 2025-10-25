@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('job_configs', function (Blueprint $table) {
+        Schema::create('attributes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('icon')->nullable();
@@ -39,9 +39,9 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('job_config_details', function (Blueprint $table) {
+        Schema::create('sub_attributes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('job_config_id')->constrained('job_configs')->onDelete('cascade');
+            $table->foreignId('attribute_id')->constrained('attributes')->onDelete('cascade');
             $table->string('name');
             $table->string('slug')->unique();
             $table->text('description')->nullable();
@@ -55,7 +55,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('categories');
         Schema::dropIfExists('sub_categories');
-        Schema::dropIfExists('job_configs');
-        Schema::dropIfExists('job_config_details');
+        Schema::dropIfExists('attributes');
+        Schema::dropIfExists('sub_attributes');
     }
 };

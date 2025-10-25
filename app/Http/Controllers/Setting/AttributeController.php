@@ -1,46 +1,50 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Setting;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\JobConfig;
+use App\Models\Attribute;
 use App\Helpers\AppHelper;
 use Illuminate\Support\Str;
+use App\Traits\ApiResponseTrait;
 
-class ConfigController extends Controller
+class AttributeController extends Controller
 {
-    /**
-     * Display a paginated list of Job Configs
-     */
+    use ApiResponseTrait;
+
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 10);
-        $search  = $request->input('search');
-        $status = $request->input('status', null);
+        try {
+            $perPage = $request->input('per_page', 10);
+            $search  = $request->input('search');
+            $status = $request->input('status', null);
 
-        $query = JobConfig::query();
+            $query = Attribute::query();
 
-        if ($search) {
-            $query->where('name', 'like', "%{$search}%");
+            if ($search) {
+                $query->where('name', 'like', "%{$search}%");
+            }
+
+            if ($status !== null) {
+                $query->where('is_active', $status);
+            }
+
+            $data = $query->latest()->paginate($perPage);
+
+            $data = ([
+                'items'         => $data->items(),
+                'total'        => $data->total(),
+                'per_page'     => $data->perPage(),
+                'current_page' => $data->currentPage(),
+            ]);
+
+            return $this->successResponse($data, 'Fetch successfully', 200);
+        } catch (\Throwable $th) {
+            return $this->errorResponse('Failed to process.', 500, $th->getMessage());
         }
-
-        if ($status !== null) {
-            $query->where('is_active', $status);
-        }
-
-        $data = $query->latest()->paginate($perPage);
-
-        return response()->json([
-            'data'         => $data->items(),
-            'total'        => $data->total(),
-            'per_page'     => $data->perPage(),
-            'current_page' => $data->currentPage(),
-        ]);
     }
 
-    /**
-     * Store a newly created Job Config
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -51,7 +55,7 @@ class ConfigController extends Controller
         ]);
 
         try {
-            $data = JobConfig::create([
+            $data = Attribute::create([
                 'name'        => $validated['name'],
                 'slug'        => Str::slug($validated['name']),
                 'description' => $validated['description'] ?? null,
@@ -64,20 +68,12 @@ class ConfigController extends Controller
                 "Created Job Config '{$data->name}', ID: {$data->id}."
             );
 
-            return response()->json([
-                'message' => 'Job config created successfully!',
-                'data'    => $data,
-            ], 201);
+            return $this->successResponse($data, 'Job config created successfully', 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to process. ' . $e->getMessage(),
-            ], 500);
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
         }
     }
 
-    /**
-     * Update an existing Job Config
-     */
     public function update(Request $request, string $id)
     {
         $validated = $request->validate([
@@ -88,7 +84,7 @@ class ConfigController extends Controller
         ]);
 
         try {
-            $data = JobConfig::findOrFail($id);
+            $data = Attribute::findOrFail($id);
 
             $data->update([
                 'name'        => $validated['name'],
@@ -103,24 +99,16 @@ class ConfigController extends Controller
                 "Updated Job Config '{$data->name}', ID: {$data->id}."
             );
 
-            return response()->json([
-                'message' => 'Job config updated successfully!',
-                'data'    => $data,
-            ]);
+            return $this->successResponse($data, 'Job config created successfully', 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to process. ' . $e->getMessage(),
-            ], 500);
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
         }
     }
 
-    /**
-     * Delete a Job Config
-     */
     public function destroy(Request $request, string $id)
     {
         try {
-            $data = JobConfig::findOrFail($id);
+            $data = Attribute::findOrFail($id);
             $name = $data->name;
 
             $data->delete();
@@ -130,13 +118,9 @@ class ConfigController extends Controller
                 "Deleted Job Config '{$name}', ID: {$id}."
             );
 
-            return response()->json([
-                'message' => 'Job config deleted successfully!',
-            ]);
+            return $this->successResponse($data, 'Job config created successfully', 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to process. ' . $e->getMessage(),
-            ], 500);
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
         }
     }
 }

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class JobConfig extends Model
+class Attribute extends Model
 {
     use SoftDeletes;
 
@@ -21,13 +21,8 @@ class JobConfig extends Model
         'is_active' => 'boolean',
     ];
 
-    public function jobConfigDetil()
+    public function subAttributes()
     {
-        return $this->hasOne(JobConfigDetail::class);
-    }
-
-    public function jobConfigDetails()
-    {
-        return $this->hasMany(JobConfigDetail::class);
+        return $this->hasMany(SubAttribute::class);
     }
 }

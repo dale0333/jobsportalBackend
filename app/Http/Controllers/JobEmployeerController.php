@@ -20,9 +20,13 @@ class JobEmployeerController extends Controller
             $perPage = (int) $request->input('per_page', 10);
             $search  = $request->input('search');
             $status  = $request->input('status');
+            $type    = $request->input('type');
 
-            $query = JobVacancy::with(['employer'])
-                ->where('employer_id', $request->user()->employer->id);
+            $query = JobVacancy::with(['employer.user']);
+
+            if ($type != 'admin') {
+                $query->where('employer_id', $request->user()->employer->id);
+            }
 
             if ($search) {
                 $query->where('title', 'like', "%{$search}%");
@@ -34,13 +38,14 @@ class JobEmployeerController extends Controller
 
             $jobs = $query->latest()->paginate($perPage);
 
-            return response()->json([
-                'success'      => true,
-                'data'         => $jobs->items(),
+            $jobs = ([
+                'items'        => $jobs->items(),
                 'total'        => $jobs->total(),
                 'per_page'     => $jobs->perPage(),
                 'current_page' => $jobs->currentPage(),
             ]);
+
+            return $this->successResponse($jobs, 'Job created successfully!', 200);
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to fetch jobs', 500, $e->getMessage());
         }
@@ -57,18 +62,19 @@ class JobEmployeerController extends Controller
                 'deadline'         => 'required',
 
                 'job_category'     => 'required|integer|exists:categories,id',
+                'personnel_needed' => 'required|integer',
                 'job_sub_category' => 'required|array',
                 'job_sub_category.*' => 'integer|exists:sub_categories,id',
 
-                'job_location'     => 'required|integer|exists:job_config_details,id',
-                'job_type'         => 'required|integer|exists:job_config_details,id',
-                'job_qualify'      => 'required|integer|exists:job_config_details,id',
-                'job_level'        => 'required|integer|exists:job_config_details,id',
+                'job_location'     => 'required|integer|exists:sub_attributes,id',
+                'job_type'         => 'required|integer|exists:sub_attributes,id',
+                'job_qualify'      => 'required|integer|exists:sub_attributes,id',
+                'job_level'        => 'required|integer|exists:sub_attributes,id',
                 'is_active'        => 'nullable|boolean',
             ]);
 
             $job = JobVacancy::create([
-                'employer_id'   => $request->user()->id,
+                'employer_id'   => $request->user()->employer->id,
                 'title'         => $validated['title'],
                 'content'       => $validated['content'],
                 'code'          => (string) Str::uuid(),
@@ -81,6 +87,7 @@ class JobEmployeerController extends Controller
                 'job_level'     => $validated['job_level'],
 
                 'job_experience' => $validated['job_experience'],
+                'available'     => $validated['personnel_needed'],
                 'salary'        => $validated['salary'] ?? null,
                 'deadline'      => Carbon::parse($validated['deadline'])->format('Y-m-d'),
                 'is_active'     => $validated['is_active'] ?? false,
@@ -119,6 +126,7 @@ class JobEmployeerController extends Controller
                 'job_qualify'    => $item->job_qualify,
                 'job_level'      => $item->job_level,
 
+                'available'      => $item->available,
                 'job_experience' => $item->job_experience,
                 'salary'       => $item->salary,
                 'deadline'     => $item->deadline,
@@ -152,20 +160,22 @@ class JobEmployeerController extends Controller
                 'deadline'         => 'required',
 
                 'job_category'     => 'required|integer|exists:categories,id',
+                'available'        => 'required|integer',
                 'job_sub_category' => 'required|array',
                 'job_sub_category.*' => 'integer|exists:sub_categories,id',
 
-                'job_location'     => 'required|integer|exists:job_config_details,id',
-                'job_type'         => 'required|integer|exists:job_config_details,id',
-                'job_qualify'      => 'required|integer|exists:job_config_details,id',
-                'job_level'        => 'required|integer|exists:job_config_details,id',
+                'job_location'     => 'required|integer|exists:sub_attributes,id',
+                'job_type'         => 'required|integer|exists:sub_attributes,id',
+                'job_qualify'      => 'required|integer|exists:sub_attributes,id',
+                'job_level'        => 'required|integer|exists:sub_attributes,id',
                 'is_active'        => 'nullable|boolean',
             ]);
 
             $job->update([
                 'title'           => $validated['title'],
                 'content'         => $validated['content'],
-                'job_experience'   => $validated['job_experience'],
+                'available'       => $validated['available'],
+                'job_experience'  => $validated['job_experience'],
                 'salary'          => $validated['salary'] ?? null,
                 'deadline'        => Carbon::parse($validated['deadline'])->format('Y-m-d'),
 

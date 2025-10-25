@@ -36,6 +36,26 @@ class AdminUserSeeder extends Seeder
             $this->command->info('ℹ️ Admin user already exists.');
         }
 
+        // ==================== SECRETARIAT ====================
+        if (DB::table('users')->where('email', 'secretariat@test.com')->doesntExist()) {
+            DB::table('users')->insert([
+                'user_type' => 'secretariat',
+                'name' => 'Secretariat Office',
+                'email' => 'secretariat@test.com',
+                'email_verified_at' => now(),
+                'password' => Hash::make('password123'),
+                'address' => 'Clark Freeport Zone, Pampanga, Philippines',
+                'telephone' => '+63 923 456 7890',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->command->info('✅ Secretariat user created: secretariat@test.com / password123');
+        } else {
+            $this->command->info('ℹ️ Secretariat user already exists.');
+        }
+
         // ==================== EMPLOYER ====================
         if (DB::table('users')->where('email', 'employer@test.com')->doesntExist()) {
             $userId = DB::table('users')->insertGetId([
@@ -54,7 +74,8 @@ class AdminUserSeeder extends Seeder
             DB::table('employers')->insert([
                 'user_id' => $userId,
                 'company_size' => '51-200',
-                'industry' => 'Technology',
+                'industry' => 'Technology Industry',
+                'locator_number' => '123456',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -99,6 +120,46 @@ class AdminUserSeeder extends Seeder
             $this->command->info('✅ Job Seeker created: jobseeker@test.com / password123');
         } else {
             $this->command->info('ℹ️ Job Seeker user already exists.');
+        }
+
+        // ==================== PESO SCHOOL ====================
+        if (DB::table('users')->where('email', 'pesoschool@test.com')->doesntExist()) {
+            DB::table('users')->insert([
+                'user_type' => 'peso_school',
+                'name' => 'PESO School Clark',
+                'email' => 'pesoschool@test.com',
+                'email_verified_at' => now(),
+                'password' => Hash::make('password123'),
+                'telephone' => $faker->phoneNumber,
+                'address' => 'Clark Education Zone, Pampanga',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->command->info('✅ PESO School user created: pesoschool@test.com / password123');
+        } else {
+            $this->command->info('ℹ️ PESO School user already exists.');
+        }
+
+        // ==================== MANPOWER AGENCY ====================
+        if (DB::table('users')->where('email', 'manpower@test.com')->doesntExist()) {
+            DB::table('users')->insert([
+                'user_type' => 'manpower_agency',
+                'name' => 'Clark Manpower Agency',
+                'email' => 'manpower@test.com',
+                'email_verified_at' => now(),
+                'password' => Hash::make('password123'),
+                'telephone' => $faker->phoneNumber,
+                'address' => 'Clark Industrial Park, Pampanga',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->command->info('✅ Manpower Agency user created: manpower@test.com / password123');
+        } else {
+            $this->command->info('ℹ️ Manpower Agency user already exists.');
         }
     }
 }

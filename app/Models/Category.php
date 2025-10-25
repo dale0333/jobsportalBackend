@@ -24,4 +24,9 @@ class Category extends Model
     {
         return $this->hasMany(SubCategory::class);
     }
+
+    public function jobVacancies()
+    {
+        return $this->hasMany(JobVacancy::class, 'job_category');
+    }
 }

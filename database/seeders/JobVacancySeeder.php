@@ -4,9 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
-use App\Models\{JobConfig, JobConfigDetail, Category, SubCategory};
+use App\Models\{SubAttribute, Category};
 
 class JobVacancySeeder extends Seeder
 {
@@ -21,19 +20,19 @@ class JobVacancySeeder extends Seeder
         $categories = Category::with('subCategories')->get();
 
         // Get job config details
-        $locations = JobConfigDetail::whereHas('jobConfig', function ($query) {
+        $locations = SubAttribute::whereHas('attribute', function ($query) {
             $query->where('slug', 'locations');
         })->get();
 
-        $types = JobConfigDetail::whereHas('jobConfig', function ($query) {
+        $types = SubAttribute::whereHas('attribute', function ($query) {
             $query->where('slug', 'types');
         })->get();
 
-        $qualifications = JobConfigDetail::whereHas('jobConfig', function ($query) {
+        $qualifications = SubAttribute::whereHas('attribute', function ($query) {
             $query->where('slug', 'qualifications');
         })->get();
 
-        $levels = JobConfigDetail::whereHas('jobConfig', function ($query) {
+        $levels = SubAttribute::whereHas('attribute', function ($query) {
             $query->where('slug', 'levels');
         })->get();
 
@@ -296,6 +295,7 @@ class JobVacancySeeder extends Seeder
                 'job_qualify' => $job['job_qualify'],
                 'job_level' => $job['job_level'],
                 'job_experience' => $job['job_experience'],
+                'available' => 1,
                 'salary' => $job['salary'],
                 'deadline' => $job['deadline'],
                 'is_active' => true,

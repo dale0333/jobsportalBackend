@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class JobConfigDetail extends Model
+class SubAttribute extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
-        'job_config_id',
+        'attribute_id',
         'name',
         'slug',
         'description',
@@ -21,8 +21,8 @@ class JobConfigDetail extends Model
         'is_active' => 'boolean',
     ];
 
-    public function jobConfig()
+    public function attribute()
     {
-        return $this->belongsTo(JobConfig::class);
+        return $this->belongsTo(Attribute::class);
     }
 }

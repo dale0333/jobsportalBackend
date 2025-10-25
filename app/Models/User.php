@@ -22,6 +22,7 @@ class User extends Authenticatable
         'telephone',
         'avatar',
         'cover_photo',
+        'is_web',
         'is_email',
         'is_sms',
         'is_online',
@@ -40,7 +41,37 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+
+            'is_web' => 'boolean',
+            'is_email' => 'boolean',
+            'is_sms' => 'boolean',
         ];
+    }
+
+    /**
+     * Check if user has verified email
+     */
+    public function hasVerifiedEmail()
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
+     * Mark email as verified
+     */
+    public function markEmailAsVerified()
+    {
+        return $this->forceFill([
+            'email_verified_at' => $this->freshTimestamp(),
+        ])->save();
+    }
+
+    /**
+     * Get email for verification
+     */
+    public function getEmailForVerification()
+    {
+        return $this->email;
     }
 
     // Check user type methods
@@ -107,40 +138,18 @@ class User extends Authenticatable
         return $this->hasMany(SocialMedia::class);
     }
 
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
 
-
-
-
-
+    public function jobSeekerDocuments()
+    {
+        return $this->attachments()->where('type', 'job-seeker-document');
+    }
 
     public function notifications()
     {
         return $this->hasMany(Notification::class);
-    }
-
-    public function reports()
-    {
-        return $this->hasMany(Report::class);
-    }
-
-    // Scopes
-    public function scopeAdmins($query)
-    {
-        return $query->where('user_type', 'admin');
-    }
-
-    public function scopeJobSeekers($query)
-    {
-        return $query->where('user_type', 'job_seeker');
-    }
-
-    public function scopeEmployers($query)
-    {
-        return $query->where('user_type', 'employer');
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
     }
 }

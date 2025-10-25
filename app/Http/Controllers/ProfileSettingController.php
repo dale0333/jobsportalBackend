@@ -62,6 +62,7 @@ class ProfileSettingController extends Controller
                 $employerValidate = [
                     'company_size' => 'nullable|string|max:255',
                     'industry' => 'nullable|string|max:255',
+                    'locator_number' => 'nullable|string|max:255',
                 ];
             }
 
@@ -74,8 +75,10 @@ class ProfileSettingController extends Controller
                 'bio' => 'nullable|string|max:2000',
 
                 'social_media' => 'nullable|array',
-                'social_media.*.name' => 'required_with:social_media.*.url|string|max:255',
-                'social_media.*.url' => 'required_with:social_media.*.name|url|max:500',
+                'social_media.*.name' => 'nullable|string|max:255',
+                'social_media.*.url'  => 'nullable|url|max:500',
+                // 'social_media.*.name' => 'nullable:social_media.*.url|string|max:255',
+                // 'social_media.*.url' => 'nullable:social_media.*.name|url|max:500',
             ], $jobSeekerValidate, $employerValidate));
 
             // ✅ Update core user info
@@ -111,6 +114,7 @@ class ProfileSettingController extends Controller
                 $employerData = [
                     'company_size' => $validated['company_size'] ?? null,
                     'industry' => $validated['industry'] ?? null,
+                    'locator_number' => $validated['locator_number'] ?? null,
                 ];
 
                 $user->employer
@@ -201,7 +205,7 @@ class ProfileSettingController extends Controller
             $user->avatar_url = $user->avatar ? asset('storage/' . $user->avatar) : null;
             $user->cover_photo_url = $user->cover_photo ? asset('storage/' . $user->cover_photo) : null;
 
-            $user->load(['jobSeeker', 'employer', 'socialMedias']);
+            $user->load(['jobSeeker.experiences', 'employer', 'socialMedias']);
 
             AppHelper::userLog($user->id, ucfirst($type) . ' updated successfully.');
 
@@ -216,6 +220,27 @@ class ProfileSettingController extends Controller
             return $this->errorResponse('Failed to upload image.', 500, $e->getMessage());
         }
     }
+
+    public function destroy(Request $request, $password)
+    {
+        $user = $request->user();
+
+        if (!Hash::check($password, $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['The provided password is incorrect.'],
+            ]);
+        }
+
+        try {
+            $user->delete();
+            $user->tokens()->delete();
+
+            return $this->successResponse([], 'Your account has been deleted successfully.', 200);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete account.', 500, $e->getMessage());
+        }
+    }
+
 
     public function changePassword(Request $request)
     {
@@ -247,11 +272,89 @@ class ProfileSettingController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function storeJobExpriences(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'experiences' => 'required|array|min:1',
+            'experiences.*.id' => 'nullable|integer|exists:experiences,id',
+            'experiences.*.job_title' => 'required|string|max:255',
+            'experiences.*.company' => 'required|string|max:255',
+            'experiences.*.start_year' => 'required|max:4',
+            'experiences.*.end_year' => 'required|max:4',
+            'experiences.*.job_description' => 'required|string',
+        ]);
+
+        try {
+            $user = $request->user();
+
+            if (!$user->jobSeeker) {
+                return response()->json(['message' => 'Job seeker profile not found.'], 404);
+            }
+
+            $jobSeeker = $user->jobSeeker;
+            $existingIds = [];
+
+            foreach ($validated['experiences'] as $exp) {
+                $experience = $jobSeeker->experiences()->updateOrCreate(
+                    [
+                        // condition to check if record exists
+                        'id' => $exp['id'] ?? null,
+                    ],
+                    [
+                        // fields to update or create
+                        'job_title'       => $exp['job_title'],
+                        'company'         => $exp['company'],
+                        'start_year'      => $exp['start_year'],
+                        'end_year'        => $exp['end_year'],
+                        'job_description' => $exp['job_description'],
+                    ]
+                );
+
+                $existingIds[] = $experience->id;
+            }
+
+            // Optionally remove experiences not present in the new list
+            $jobSeeker->experiences()
+                ->whereNotIn('id', $existingIds)
+                ->delete();
+
+            AppHelper::userLog($user->id, 'Experiences detials has been updated successfully.');
+
+            // Reload relationships
+            $user->load(['jobSeeker.experiences', 'employer', 'socialMedias']);
+
+            return $this->successResponse(
+                $user,
+                'Experiences updated successfully.',
+                200
+            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse('Validation failed.', 422, $e->errors());
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update experiences.', 500, $e->getMessage());
+        }
+    }
+
+    public function updateNotificationSettings(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'is_web' => 'required|boolean',
+            'is_email' => 'required|boolean',
+            'is_sms' => 'required|boolean',
+        ]);
+
+        try {
+            $user->update($validated);
+
+            AppHelper::userLog($user->id, 'Notification settings has been updated successfully.');
+
+            $user->load(['jobSeeker.experiences', 'employer', 'socialMedias']);
+
+            return $this->successResponse($user, 'Notification settings updated successfully.', 200);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed process.', 500, $e->getMessage());
+        }
     }
 }

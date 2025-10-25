@@ -29,8 +29,7 @@ class UserLogController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('action', 'like', "%{$search}%")
                         ->orWhereHas('user', function ($userQuery) use ($search) {
-                            $userQuery->where('name', 'like', "%{$search}%")
-                                ->orWhere('emp_id', 'like', "%{$search}%");
+                            $userQuery->where('name', 'like', "%{$search}%");
                         });
                 });
             }

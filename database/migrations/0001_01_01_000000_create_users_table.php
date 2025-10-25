@@ -11,7 +11,7 @@ return new class extends Migration
         // Users table (must come first for foreign keys)
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->enum('user_type', ['job_seeker', 'employer', 'peso_school', 'manpower_agency', 'admin']);
+            $table->enum('user_type', ['job_seeker', 'employer', 'peso_school', 'manpower_agency', 'secretariat', 'admin']);
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
@@ -23,11 +23,12 @@ return new class extends Migration
             $table->string('avatar')->nullable();
             $table->string('cover_photo')->nullable();
 
-            $table->boolean('is_email')->default(false);
+            $table->boolean('is_web')->default(true);
+            $table->boolean('is_email')->default(true);
             $table->boolean('is_sms')->default(false);
             $table->boolean('is_online')->default(true);
             $table->boolean('is_active')->default(true);
-            $table->boolean('is_verified')->default(false);
+            $table->boolean('is_verified')->default(true);
             $table->rememberToken();
             $table->softDeletes();
             $table->timestamps();
@@ -54,6 +55,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('company_size')->nullable();
             $table->string('industry')->nullable();
+            $table->string('locator_number')->nullable();
             $table->timestamps();
         });
 
@@ -83,6 +85,17 @@ return new class extends Migration
             $table->string('description')->nullable();
             $table->string('url')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('experiences', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('job_seeker_id')->constrained('job_seekers')->cascadeOnDelete();
+            $table->string('job_title')->nullable();
+            $table->string('company')->nullable();
+            $table->string('start_year')->nullable();
+            $table->string('end_year')->nullable();
+            $table->text('job_description')->nullable();
             $table->timestamps();
         });
 
@@ -126,6 +139,43 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('bulk_uploads', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
+            // File information
+            $table->string('original_filename');
+            $table->string('filename');
+            $table->string('file_path');
+            $table->integer('file_size');
+            $table->string('file_type');
+            $table->string('extension', 10);
+
+            // Upload metadata
+            $table->string('purpose')->nullable();
+
+            // Processing statistics
+            $table->integer('total_records')->default(0);
+            $table->integer('successful_records')->default(0);
+            $table->integer('failed_records')->default(0);
+            $table->json('processing_errors')->nullable();
+            $table->json('processing_results')->nullable();
+
+            // Status tracking
+            $table->enum('status', ['pending', 'processing', 'completed', 'failed'])->default('pending');
+            $table->timestamp('uploaded_at')->nullable();
+            $table->timestamp('processed_at')->nullable();
+
+            $table->timestamps();
+
+            // Indexes for better performance
+            $table->index('status');
+            $table->index('user_id');
+            $table->index('uploaded_at');
+            $table->index('processed_at');
+        });
+
         // Laravel default tables (keep these at the end)
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
@@ -147,11 +197,13 @@ return new class extends Migration
     {
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('bulk_uploads');
         Schema::dropIfExists('announcements');
         Schema::dropIfExists('email_smtps');
         Schema::dropIfExists('user_logs');
         Schema::dropIfExists('notifications');
         Schema::dropIfExists('social_medias');
+        Schema::dropIfExists('experiences');
         Schema::dropIfExists('manpower_agencies');
         Schema::dropIfExists('peso_schools');
         Schema::dropIfExists('employers');

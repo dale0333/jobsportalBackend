@@ -6,31 +6,66 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\EmailSmtp;
 use App\Helpers\AppHelper;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Support\Facades\Mail;
+
+use App\Services\appService;
+
 
 class EmailController extends Controller
 {
+    use ApiResponseTrait;
+
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 10);
-        $search = $request->input('search', null);
+        try {
+            $perPage = $request->input('per_page', 10);
+            $search = $request->input('search', null);
 
-        $query = EmailSmtp::query();
+            $query = EmailSmtp::query();
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('host', 'like', "%$search%")
-                    ->orWhere('email', 'like', "%$search%");
-            });
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('host', 'like', "%$search%")
+                        ->orWhere('email', 'like', "%$search%");
+                });
+            }
+
+            $data = $query->latest()->paginate($perPage);
+
+            $data = ([
+                'items' => $data->items(),
+                'total' => $data->total(),
+                'per_page' => $data->perPage(),
+                'current_page' => $data->currentPage(),
+            ]);
+
+            return $this->successResponse($data, 'Email SMTP fetch successfully', 200);
+        } catch (\Throwable $th) {
+            return $this->errorResponse('Failed to process.', 500, $th->getMessage());
         }
+    }
 
-        $data = $query->latest()->paginate($perPage);
+    public function show($email)
+    {
+        AppHelper::mailerConfig();
 
-        return response()->json([
-            'data' => $data->items(),
-            'total' => $data->total(),
-            'per_page' => $data->perPage(),
-            'current_page' => $data->currentPage(),
-        ]);
+        $data = [
+            'title' => 'SMTP Test Email',
+            'smtpName' => config('mail.mailers.smtp.host'),
+            'timestamp' => now()->format('Y-m-d H:i:s'),
+        ];
+
+        try {
+            Mail::send('emails.test', $data, function ($message) use ($email, $data) {
+                $message->to($email)
+                    ->subject($data['title']);
+            });
+
+            return $this->successResponse($data, "Test email sent successfully to {$email}", 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to process. ' . $e->getMessage(), 500, $e->getMessage());
+        }
     }
 
     public function store(Request $request)
@@ -56,14 +91,9 @@ class EmailController extends Controller
                 "Created new Email SMTP for '{$data->email}' (ID: {$data->id})."
             );
 
-            return response()->json([
-                'message' => 'Email SMTP created successfully!',
-                'data'    => $data,
-            ], 201);
+            return $this->successResponse($data, 'Email SMTP created successfully', 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to process. ' . $e->getMessage(),
-            ], 500);
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
         }
     }
 
@@ -94,14 +124,9 @@ class EmailController extends Controller
                 "Updated Email SMTP for '{$data->email}' (ID: {$id})."
             );
 
-            return response()->json([
-                'message' => 'Email SMTP updated successfully!',
-                'data'    => $data,
-            ], 200);
+            return $this->successResponse($data, 'Email SMTP updated successfully', 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to process. ' . $e->getMessage(),
-            ], 500);
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
         }
     }
 
@@ -121,13 +146,9 @@ class EmailController extends Controller
 
             AppHelper::userLog($request->user()->id, "Deleted Email SMTP for '{$email}' (ID: {$id}).");
 
-            return response()->json([
-                'message' => 'Email SMTP deleted successfully!',
-            ], 200);
+            return $this->successResponse($data, 'Email SMTP deleted successfully', 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to process. ' . $e->getMessage(),
-            ], 500);
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
         }
     }
 }

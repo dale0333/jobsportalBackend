@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+
 use App\Helpers\AppHelper;
 use App\Traits\ApiResponseTrait;
 
@@ -26,19 +27,28 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
+        // Check credentials
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
+        // 🚫 Check if user is deactivated
         if (!$user->is_active) {
             return response()->json([
                 'message' => 'Your account has been deactivated. Please contact the administrator.'
             ], 403);
         }
 
-        // Create token with abilities
+        // 🚫 Check if email is not verified
+        if (is_null($user->email_verified_at)) {
+            return response()->json([
+                'message' => 'Please verify your email address before logging in.'
+            ], 403);
+        }
+
+        // ✅ Create token with abilities
         $token = $user->createTokenWithAbilities('auth-token');
 
         // ✅ Log user login activity
@@ -46,7 +56,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Login successful',
-            'user' => $user->load(['jobSeeker', 'employer', 'socialMedias']),
+            'user' => $user->load(['jobSeeker.experiences', 'employer', 'socialMedias', 'jobSeekerDocuments']),
             'access_token' => $token->plainTextToken,
             'abilities' => $token->accessToken->abilities,
         ], 200);
@@ -72,54 +82,70 @@ class AuthController extends Controller
             'services' => 'required|array',
             'preferred_location' => 'nullable|string|max:255',
             'expected_salary' => 'nullable|string',
+            'files' => 'nullable|array',
+            'files.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
         ]);
 
         try {
             DB::beginTransaction();
 
-            // ✅ Create user
+            // ✅ Create User
             $user = User::create([
                 'user_type' => 'job_seeker',
                 'name' => $request->name,
                 'email' => $request->email,
-                'email_verified_at' => now(),
                 'password' => Hash::make($request->password),
                 'telephone' => $request->telephone,
                 'address' => $request->address,
                 'is_active' => true,
             ]);
 
-            // ✅ Create job seeker profile
+            // ✅ Create Job Seeker Profile
             $user->jobSeeker()->create([
                 'date_of_birth' => $request->date_of_birth,
                 'gender' => $request->gender,
                 'education_level' => $request->education_level,
                 'field_of_study' => $request->field_of_study,
                 'skills' => $request->skills,
-                'services' => $request->services,
+                'services' => collect($request->services)->map(fn($id) => (int) $id)->values()->toArray(),
                 'years_of_experience' => 0,
                 'preferred_location' => $request->preferred_location,
                 'expected_salary' => $request->expected_salary,
                 'is_available' => true,
             ]);
 
+            // ✅ Handle File Uploads
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $uniqueName = uniqid() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+                    $folder = 'attachments/job_applicant';
+                    $path = $file->storeAs($folder, $uniqueName, 'public');
+
+                    $user->attachments()->create([
+                        'name' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'type' => 'job-seeker-document',
+                    ]);
+                }
+            }
+
+            // ✅ Send Email Verification
+            AppHelper::sendVerificationEmail($user);
+
             DB::commit();
 
-            $user->load('jobSeeker');
+            $user->load(['jobSeeker', 'attachments']);
 
-            // ✅ Log registration event
+            // ✅ Log Event
             AppHelper::userLog($user->id, "New job seeker registered: {$user->name}");
 
-            return $this->successResponse($user, 'Registration successful!', 201);
+            return $this->successResponse($user, 'Registration successful! Please verify your email.', 201);
         } catch (\Throwable $e) {
             DB::rollBack();
             return $this->errorResponse('Registration failed.', 500, $e->getMessage());
         }
     }
 
-    /**
-     * 🔹 LOGOUT
-     */
     public function logout(Request $request)
     {
         $user = $request->user();

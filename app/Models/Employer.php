@@ -13,6 +13,7 @@ class Employer extends Model
         'user_id',
         'company_size',
         'industry',
+        'locator_number'
     ];
 
     // Relationships
@@ -20,6 +21,18 @@ class Employer extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     public function jobVacancies()
     {

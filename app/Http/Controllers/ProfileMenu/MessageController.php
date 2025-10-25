@@ -38,8 +38,8 @@ class MessageController extends Controller
             $unseenCount = $this->chatNotSeenCount($authUserId, $otherUserId);
 
             $avatar = $otherUser->avatar
-                ? asset("avatars/{$otherUser->avatar}")
-                : asset("avatars/avatar-" . rand(1, 10) . ".jpg");
+                ? asset("storage/{$otherUser->avatar}")
+                : asset("avatars/user-dummy-img.jpg");
 
             return [
                 'id'              => $otherUser->id,
@@ -57,11 +57,12 @@ class MessageController extends Controller
                     $q->where('name', 'LIKE', "%{$search}%")
                         ->orWhere('email', 'LIKE', "%{$search}%");
                 })
+                ->whereIn('user_type', ['job_seeker', 'employer'])
                 ->get()
                 ->map(function ($user) {
                     $avatar = $user->avatar
-                        ? asset("avatars/{$user->avatar}")
-                        : asset("avatars/avatar-" . rand(1, 10) . ".jpg");
+                        ? asset("storage/{$user->avatar}")
+                        : asset("avatars/user-dummy-img.jpg");
 
                     return [
                         'id'              => $user->id,

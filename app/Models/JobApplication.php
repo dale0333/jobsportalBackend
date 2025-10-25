@@ -36,46 +36,4 @@ class JobApplication extends Model
     {
         return $this->belongsTo(JobVacancy::class);
     }
-
-    // Scopes
-    // public function scopePending($query)
-    // {
-    //     return $query->where('status', 'pending');
-    // }
-
-    // public function scopeShortlisted($query)
-    // {
-    //     return $query->where('status', 'shortlisted');
-    // }
-
-    // public function scopeForInterview($query)
-    // {
-    //     return $query->where('status', 'interview');
-    // }
-
-    // public function scopeHired($query)
-    // {
-    //     return $query->where('status', 'hired');
-    // }
-
-    // public function scopeRejected($query)
-    // {
-    //     return $query->where('status', 'rejected');
-    // }
-
-    // Helper methods
-    public function markAsShortlisted()
-    {
-        $this->update(['status' => 'shortlisted']);
-    }
-
-    public function markAsRejected()
-    {
-        $this->update(['status' => 'rejected']);
-    }
-
-    public function markAsHired()
-    {
-        $this->update(['status' => 'hired']);
-    }
 }

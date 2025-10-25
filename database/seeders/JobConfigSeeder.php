@@ -246,7 +246,7 @@ class JobConfigSeeder extends Seeder
 
         foreach ($jobConfigs as $config) {
             // Insert parent job config
-            $jobConfigId = DB::table('job_configs')->insertGetId([
+            $jobConfigId = DB::table('attributes')->insertGetId([
                 'name' => $config['name'],
                 'slug' => Str::slug($config['name']),
                 'icon' => $config['icon'],
@@ -261,8 +261,8 @@ class JobConfigSeeder extends Seeder
                 // Create unique slug by combining category and detail name
                 $uniqueSlug = Str::slug($config['name'] . ' ' . $detail['name']);
 
-                DB::table('job_config_details')->insert([
-                    'job_config_id' => $jobConfigId,
+                DB::table('sub_attributes')->insert([
+                    'attribute_id' => $jobConfigId,
                     'name' => $detail['name'],
                     'slug' => $uniqueSlug,
                     'description' => $detail['description'],

@@ -26,6 +26,7 @@ return new class extends Migration
             $table->integer('job_level');
 
             $table->string('job_experience');
+            $table->integer('available');
             $table->string('salary')->nullable();
 
             $table->integer('views')->default(0);
@@ -57,7 +58,7 @@ return new class extends Migration
             $table->foreignId('job_seeker_id')->constrained('job_seekers')->onDelete('cascade');
             $table->foreignId('job_vacancy_id')->constrained('job_vacancies')->onDelete('cascade');
             $table->text('cover_letter')->nullable();
-            $table->enum('status', ['pending', 'shortlisted', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->enum('status', ['pending', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
             $table->timestamps();
         });
 
@@ -66,7 +67,7 @@ return new class extends Migration
             $table->foreignId('job_application_id')->constrained('job_applications')->onDelete('cascade');
             $table->foreignId('process_by')->constrained('users')->onDelete('cascade');
             $table->text('notes')->nullable();
-            $table->enum('status', ['pending', 'shortlisted', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->enum('status', ['pending', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
             $table->timestamps();
         });
 

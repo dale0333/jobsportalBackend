@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\{JobVacancy, JobView, JobRating, JobApplication};
 use App\Traits\ApiResponseTrait;
 use App\Helpers\AppHelper;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 class JobSeekerController extends Controller
@@ -14,6 +15,8 @@ class JobSeekerController extends Controller
 
     public function index(Request $request)
     {
+        $user = $request->user();
+
         try {
             $perPage       = $request->input('per_page', 3);
             $search        = $request->input('search');
@@ -23,15 +26,37 @@ class JobSeekerController extends Controller
             $sort          = $request->input('sort');
             $status        = $request->input('status', null);
 
-            $query = JobVacancy::where('is_active', true)->with([
-                'category',
-                'jobLocation',
-                'jobType',
-                'jobQualify',
-                'jobLevel',
-            ]);
+            $query = JobVacancy::where('is_active', true)
+                ->whereDate('deadline', '>=', Carbon::today())
+                ->with(['category', 'jobLocation', 'jobType', 'jobQualify', 'jobLevel', 'ratings', 'employer.user']);
 
-            // 🔍 Search by title or content
+            // 🧠 Personalized sorting: prioritize jobs matching seeker’s services
+            $services = [];
+
+            if (
+                $user &&
+                $user->user_type === 'job_seeker' &&
+                empty($search) &&
+                empty($category) &&
+                empty($subCategories)
+            ) {
+                $services = $user->jobSeeker?->services ?? [];
+
+                if (!empty($services)) {
+                    $cases = [];
+                    foreach ($services as $index => $serviceId) {
+                        $id = (int)$serviceId;
+                        $cases[] = "WHEN JSON_CONTAINS(job_sub_category, '{$id}') OR JSON_CONTAINS(job_sub_category, '\"{$id}\"') THEN {$index}";
+                    }
+
+                    $caseSql = 'CASE ' . implode(' ', $cases) . ' ELSE 9999 END';
+
+                    $query->orderByRaw($caseSql)->orderByDesc('created_at');
+                }
+            }
+
+
+            // 🔍 Search filter
             if (!empty($search)) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
@@ -39,12 +64,12 @@ class JobSeekerController extends Controller
                 });
             }
 
-            // 🗂️ Filter by Category
+            // 🗂️ Category filter
             if (!empty($category)) {
                 $query->where('job_category', $category);
             }
 
-            // 🧩 Filter by Subcategories
+            // 🧩 Subcategory filter
             if (!empty($subCategories)) {
                 $query->where(function ($q) use ($subCategories) {
                     foreach ($subCategories as $sub) {
@@ -53,41 +78,43 @@ class JobSeekerController extends Controller
                 });
             }
 
-            // 💼 Filter by Experience
+            // 💼 Experience filter
             if (!empty($experience)) {
                 $query->where('job_experience', $experience);
             }
 
             // 🔽 Sorting
-            switch ($sort) {
-                case 'latest':
-                    $query->latest();
-                    break;
-                case 'oldest':
-                    $query->oldest();
-                    break;
-                case 'salary_high':
-                    $query->orderByRaw("CAST(REPLACE(REPLACE(salary, '₱', ''), ',', '') AS UNSIGNED) DESC");
-                    break;
-                case 'salary_low':
-                    $query->orderByRaw("CAST(REPLACE(REPLACE(salary, '₱', ''), ',', '') AS UNSIGNED) ASC");
-                    break;
-                default:
-                    $query->latest();
+            if (!empty($sort)) {
+                switch ($sort) {
+                    case 'oldest':
+                        $query->oldest();
+                        break;
+                    case 'salary_high':
+                        $query->orderByRaw("CAST(REPLACE(REPLACE(salary, '₱', ''), ',', '') AS UNSIGNED) DESC");
+                        break;
+                    case 'salary_low':
+                        $query->orderByRaw("CAST(REPLACE(REPLACE(salary, '₱', ''), ',', '') AS UNSIGNED) ASC");
+                        break;
+                    default:
+                        $query->latest();
+                }
+            } else {
+                $query->latest();
             }
 
+            // 🔘 Status filter
             if (!is_null($status)) {
                 $query->where('is_active', $status);
             }
 
-            // Pagination
+            // 📄 Pagination
             $data = $query->paginate($perPage);
 
-            // Total displayed so far
+            // 🧮 Compute how many items displayed so far
             $displayed = $data->perPage() * ($data->currentPage() - 1) + count($data->items());
 
-            // Transform data
-            $formattedData = collect($data->items())->map(function ($item) {
+            // 🧾 Transform data
+            $formattedData = collect($data->items())->map(function ($item) use ($request) {
                 return [
                     'id'             => $item->id,
                     'title'          => $item->title,
@@ -99,15 +126,20 @@ class JobSeekerController extends Controller
                     'job_type'       => optional($item->jobType)->name,
                     'job_qualify'    => optional($item->jobQualify)->name,
                     'job_level'      => optional($item->jobLevel)->name,
+                    'available'      => $item->available,
                     'job_experience' => $item->job_experience,
                     'salary'         => $item->salary,
                     'views'          => $item->views ?? 0,
-                    'average_rate'   => $item->ratings()->avg('rate') ?? 0,
+                    'average_rate'   => number_format($item->ratings->avg('rate') ?? 0, 2),
                     'deadline'       => $item->deadline,
                     'post_at'        => $item->created_at,
+                    'seeker_rate'    => $this->jobRating($item, $request),
+                    'is_applied'     => $this->checkApplied($item, $request),
+                    'company'        => $item->employer->user,
                 ];
             });
 
+            // ✅ Include displayed count in response
             return response()->json([
                 'data'         => $formattedData,
                 'total'        => $data->total(),
@@ -150,7 +182,8 @@ class JobSeekerController extends Controller
 
             $company = [
                 "name" => $item->employer->user->name,
-                "logo" => $item->employer->user->avatar,
+                "avatar" => $item->employer->user->avatar,
+                "cover_photo" => $item->employer->user->cover_photo,
                 "industry" => $item->employer->industry,
                 "size" => $item->employer->company_size,
                 "website" =>  $item->employer->user->socialMedias,
@@ -159,12 +192,6 @@ class JobSeekerController extends Controller
                 'email' => $item->employer->user->email,
                 "description" => $item->employer->user->bio
             ];
-
-            $seekerRate = $request->user()
-                ? optional(JobRating::where('job_id', $item->id)
-                    ->where('user_id', $request->user()->id)
-                    ->first())->rate ?? 0
-                : 0;
 
             // Prepare response data
             $data = [
@@ -180,6 +207,7 @@ class JobSeekerController extends Controller
                 'job_qualify'  => optional($item->jobQualify)->name,
                 'job_level'    => optional($item->jobLevel)->name,
 
+                'available'      => $item->available,
                 'job_experience' => $item->job_experience,
                 'salary'       => $item->salary,
                 'deadline'     => $item->deadline,
@@ -187,7 +215,8 @@ class JobSeekerController extends Controller
                 'average_rate' => number_format($item->ratings->avg('rate') ?? 0, 2),
                 'post_at'      => $item->created_at,
                 'company'      => $company,
-                'seeker_rate' => $seekerRate,
+                'seeker_rate'  => $this->jobRating($item, $request),
+                'is_applied'   => $this->checkApplied($item, $request),
             ];
 
 
@@ -206,44 +235,66 @@ class JobSeekerController extends Controller
                 'files.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:5120',
             ]);
 
-            // Create job application
+            $user = $request->user();
+
+            // ✅ Create job application
             $application = JobApplication::create([
                 'job_vacancy_id' => $request->job_id,
-                'job_seeker_id' => $request->user()->jobSeeker?->id,
-                'cover_letter' => $request->coverLetter,
-                'status' => 'pending',
+                'job_seeker_id'  => $user->jobSeeker?->id,
+                'cover_letter'   => $request->coverLetter,
+                'status'         => 'pending',
             ]);
 
-            // Handle multiple file uploads (if any)
+            // ✅ Handle attachments
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
                     $uniqueName = uniqid() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-
-                    // Define the folder path
                     $folder = 'attachments/job_applicant';
-
-                    // Store file in the public disk
                     $path = $file->storeAs($folder, $uniqueName, 'public');
 
-                    // Create attachment record
                     $application->attachments()->create([
-                        'name' => $file->getClientOriginalName(),
+                        'name'      => $file->getClientOriginalName(),
                         'file_path' => $path,
-                        'type' => $file->getClientMimeType(),
+                        'type'      => $file->getClientMimeType(),
                     ]);
                 }
             }
 
+            $application->load(['attachments', 'jobVacancy.employer.user']);
+
             $data = [
                 'application_id' => $application->id,
-                'cover_letter' => $application->cover_letter,
+                'cover_letter'   => $application->cover_letter,
                 'files' => $application->attachments->map(fn($f) => [
                     'name' => $f->name,
-                    'url' => Storage::url($f->file_path),
+                    'url'  => Storage::url($f->file_path),
                 ]),
             ];
 
-            return $this->successResponse($data, 'Job application submitted successfully.');
+            AppHelper::storedNotification(
+                $application->jobVacancy->employer->user,
+                'new_application',
+                'New Job Application Received',
+                "{$user->name} has applied for your job post '{$application->jobVacancy->title}'.",
+                [
+                    'job_vacancy_id'     => $application->jobVacancy->id,
+                    'job_application_id' => $application->id,
+                    'applicant_name'     => $user->name,
+                ]
+            );
+
+            AppHelper::sendNotificationEmail(
+                $user,
+                'application_submitted',
+                'Your Job Application Was Submitted',
+                "Your application for '{$application->jobVacancy->title}' was submitted successfully.",
+                [
+                    'job_vacancy_id'     => $application->jobVacancy->id,
+                    'job_application_id' => $application->id,
+                ]
+            );
+
+            return $this->successResponse($data, 'Job application submitted successfully.', 200);
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to submit job application', 500, $e->getMessage());
         }
@@ -288,5 +339,25 @@ class JobSeekerController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to update job rating', 500, $e->getMessage());
         }
+    }
+
+    private function jobRating($item, Request $request)
+    {
+        return $request->user()
+            ? optional(
+                JobRating::where('job_id', $item->id)
+                    ->where('user_id', $request->user()->id)
+                    ->first()
+            )->rate ?? 0
+            : 0;
+    }
+
+    private function checkApplied($item, Request $request)
+    {
+        return $request->user()
+            ? JobApplication::where('job_vacancy_id', $item->id)
+            ->where('job_seeker_id', optional($request->user()->jobSeeker)->id)
+            ->exists()
+            : false;
     }
 }

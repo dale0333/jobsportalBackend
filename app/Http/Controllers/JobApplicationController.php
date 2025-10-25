@@ -18,7 +18,8 @@ class JobApplicationController extends Controller
             $perPage = $request->input('per_page', 10);
             $search  = $request->input('search');
             $status  = $request->input('status');
-            $type  = $request->input('type');
+
+            $user = $request->user();
 
             $query = JobApplication::with([
                 'jobSeeker.user',
@@ -27,50 +28,73 @@ class JobApplicationController extends Controller
                 'jobApplicationTransactions'
             ]);
 
-            if ($type === 'user') {
-                $query->where('job_seeker_id',  $request->user()->jobSeeker->id);
+            // 👤 Job Seeker can only see their own applications
+            if ($user->user_type === 'job_seeker' && $user->jobSeeker) {
+                $query->where('job_seeker_id', $user->jobSeeker->id);
             }
 
-            // 🔍 Search by applicant name or job title
-            if ($search) {
-                $query->whereHas('jobSeeker.user', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                })
-                    ->orWhereHas('jobVacancy', function ($q) use ($search) {
-                        $q->where('title', 'like', "%{$search}%");
+            // 🏢 Employer sees only applications to their job vacancies
+            if ($user->user_type === 'employer' && $user->employer) {
+                $query->whereHas('jobVacancy', function ($sub) use ($user) {
+                    $sub->where('employer_id', $user->employer->id);
+                });
+            }
+
+            // 🔍 Search by applicant name, email, or job title
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('jobSeeker.user', function ($sub) use ($search) {
+                        $sub->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })->orWhereHas('jobVacancy', function ($sub) use ($search) {
+                        $sub->where('title', 'like', "%{$search}%");
                     });
+                });
             }
 
-            // 🎯 Filter by status (pending, shortlisted, hired, etc.)
-            if ($status && $status !== 'all') {
+            // 🎯 Filter by status
+            if (!empty($status) && $status !== 'all') {
                 $query->where('status', $status);
             }
 
+            // 📄 Paginate results
             $data = $query->latest()->paginate($perPage);
 
-            // 📊 Count per status
-            $countStatuses = JobApplication::select('status', DB::raw('COUNT(*) as count'))
-                ->groupBy('status')
-                ->pluck('count', 'status');
+            // 📊 Count applications by status
+            $countQuery = JobApplication::select('status', DB::raw('COUNT(*) as count'));
 
-            // Build response count summary
+            if ($user->user_type === 'job_seeker' && $user->jobSeeker) {
+                $countQuery->where('job_seeker_id', $user->jobSeeker->id);
+            }
+
+            if ($user->user_type === 'employer' && $user->employer) {
+                $countQuery->whereHas('jobVacancy', function ($sub) use ($user) {
+                    $sub->where('employer_id', $user->employer->id);
+                });
+            }
+
+            $countStatuses = $countQuery->groupBy('status')->pluck('count', 'status');
+
+            // 📈 Build summary counts
             $counts = [
                 'pending'     => $countStatuses['pending'] ?? 0,
-                'shortlisted' => $countStatuses['shortlisted'] ?? 0,
+                'withdrawn'   => $countStatuses['withdrawn'] ?? 0,
                 'interview'   => $countStatuses['interview'] ?? 0,
                 'rejected'    => $countStatuses['rejected'] ?? 0,
                 'hired'       => $countStatuses['hired'] ?? 0,
                 'all'         => $countStatuses->sum(),
             ];
 
-            return response()->json([
-                'data'         => $data->items(),
+            // ✅ Response payload
+            $responseData = [
+                'items'        => $data->items(),
                 'total'        => $data->total(),
                 'per_page'     => $data->perPage(),
                 'current_page' => $data->currentPage(),
                 'count_types'  => $counts,
-            ]);
+            ];
+
+            return $this->successResponse($responseData, 'Job applications fetched successfully!', 200);
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to fetch job applications', 500, $e->getMessage());
         }
@@ -85,25 +109,41 @@ class JobApplicationController extends Controller
         ]);
 
         try {
-            $application = JobApplication::with('jobApplicationTransactions')->find($validated['job_application_id']);
+            $application = JobApplication::with(['jobSeeker.user', 'jobApplicationTransactions'])
+                ->find($validated['job_application_id']);
 
             if (!$application) {
                 return $this->errorResponse('Job application not found.', 404);
             }
 
-            // ✅ Update main job application status
+            // ✅ Update application status
             $application->update([
                 'status' => $validated['status'],
             ]);
 
-            // ✅ Create new transaction record
+            // ✅ Create a transaction record
             $application->jobApplicationTransactions()->create([
                 'process_by' => $request->user()->id,
                 'notes'      => $validated['notes'],
                 'status'     => $validated['status'],
             ]);
 
-            // ✅ Log activity
+            $jobSeekerUser = $application->jobSeeker->user ?? null;
+
+            if ($jobSeekerUser) {
+                AppHelper::sendNotificationEmail(
+                    $jobSeekerUser,
+                    'application_update',
+                    'Your Job Application Status Updated',
+                    "Your application for '{$application->jobVacancy->title}' has been updated to '{$validated['status']}'.",
+                    [
+                        'job_vacancy_id'     => $application->jobVacancy->id,
+                        'job_application_id' => $application->id,
+                    ]
+                );
+            }
+
+            // ✅ Log action
             AppHelper::userLog(
                 $request->user()->id,
                 "Processed Job Application '{$application->id}' - Status set to '{$validated['status']}'"
@@ -114,6 +154,7 @@ class JobApplicationController extends Controller
             return $this->errorResponse('Failed to process job application.', 500, $e->getMessage());
         }
     }
+
 
     public function destroy(Request $request, string $id)
     {

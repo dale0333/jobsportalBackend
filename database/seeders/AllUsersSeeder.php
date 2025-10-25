@@ -17,7 +17,7 @@ class AllUsersSeeder extends Seeder
         $fieldsOfStudy = ['Computer Science', 'Business Administration', 'Engineering', 'Marketing', 'Finance', 'Healthcare', 'Education', 'Arts', 'Psychology', 'Nursing'];
         $skills = ['PHP', 'JavaScript', 'Python', 'Java', 'React', 'Vue.js', 'Laravel', 'Node.js', 'MySQL', 'MongoDB', 'Project Management', 'Communication', 'Leadership', 'Problem Solving', 'Teamwork'];
         $locations = ['Manila', 'Quezon City', 'Cebu City', 'Davao City', 'Makati', 'Taguig', 'Pasig', 'Mandaluyong', 'Bacolod', 'Iloilo City'];
-        $industries = ['Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing', 'Retail', 'Hospitality', 'Construction', 'Transportation', 'Real Estate'];
+        $industries = ['Technology Industry', 'Healthcare Industry', 'Finance Banking', 'Retail Industry', 'Manufacturing Industry', 'Hospitality Industry'];
         $companySizes = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'];
         $schoolTypes = ['Public High School', 'Private High School', 'State University', 'Private University', 'Technical School', 'Vocational School'];
 
@@ -160,8 +160,8 @@ class AllUsersSeeder extends Seeder
         DB::table('email_smtps')->insert([
             'host' => 'smtp.gmail.com',
             'port' => '587',
-            'email' => 'noreply@nyc.gov.ph',
-            'password' => 'jcvpjbvoolfruktj',
+            'email' => 'costillas098@gmail.com',
+            'password' => 'otwh fmap mubw uxxe',
             'encryption' => 'tls',
             'is_active' => true,
             'created_at' => now(),

@@ -11,63 +11,29 @@ class BulkUpload extends Model
     use HasFactory;
 
     protected $fillable = [
-        'uploaded_by',
+        'user_id',
+        'original_filename',
         'filename',
         'file_path',
-        'total_records',
-        'successful_records',
-        'failed_records',
-        'processing_errors',
+        'file_size',
+        'file_type',
+        'extension',
+        'purpose',
         'status',
+        'uploaded_at',
+        'processed_at',
+        'processing_results',
     ];
 
     protected $casts = [
-        'processing_errors' => 'array',
+        'file_size' => 'integer',
+        'uploaded_at' => 'datetime',
+        'processed_at' => 'datetime',
+        'processing_results' => 'array',
     ];
 
-    // Relationships
-    public function uploadedBy()
+    public function user()
     {
-        return $this->belongsTo(User::class, 'uploaded_by');
-    }
-
-    // Scopes
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
-    }
-
-    public function scopeCompleted($query)
-    {
-        return $query->where('status', 'completed');
-    }
-
-    public function scopeFailed($query)
-    {
-        return $query->where('status', 'failed');
-    }
-
-    // Helper methods
-    public function markAsProcessing()
-    {
-        $this->update(['status' => 'processing']);
-    }
-
-    public function markAsCompleted($successful, $failed, $errors = null)
-    {
-        $this->update([
-            'status' => 'completed',
-            'successful_records' => $successful,
-            'failed_records' => $failed,
-            'processing_errors' => $errors
-        ]);
-    }
-
-    public function markAsFailed($errors = null)
-    {
-        $this->update([
-            'status' => 'failed',
-            'processing_errors' => $errors
-        ]);
+        return $this->belongsTo(User::class);
     }
 }

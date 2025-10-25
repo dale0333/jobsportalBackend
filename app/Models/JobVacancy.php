@@ -22,6 +22,7 @@ class JobVacancy extends Model
         'job_qualify',
         'job_level',
         'job_experience',
+        'available',
         'salary',
         'views',
         'rates',
@@ -43,7 +44,7 @@ class JobVacancy extends Model
     // attributes
     public function jobDetails($column)
     {
-        return $this->belongsTo(JobConfigDetail::class, $column);
+        return $this->belongsTo(SubCategory::class, $column);
     }
 
     public function jobLocation()
@@ -82,16 +83,21 @@ class JobVacancy extends Model
         return $this->ratings()->avg('rate') ?? 0;
     }
 
-
-
-
-
-
     // Relationships
     public function employer()
     {
         return $this->belongsTo(Employer::class);
     }
+
+
+
+
+
+
+
+
+
+
 
     // ===================================================
     public function jobApplications()

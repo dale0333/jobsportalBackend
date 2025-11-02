@@ -191,6 +191,15 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+        Schema::create('get_in_touches', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email');
+            $table->string('subject')->nullable();
+            $table->text('message');
+            $table->timestamps();
+        });
     }
 
     public function down(): void
@@ -209,5 +218,6 @@ return new class extends Migration
         Schema::dropIfExists('employers');
         Schema::dropIfExists('job_seekers');
         Schema::dropIfExists('users');
+        Schema::dropIfExists('get_in_touches');
     }
 };

@@ -176,14 +176,13 @@
                 <th style="width: 8%;">Salary</th>
                 <th style="width: 8%;">Applied Date</th>
                 <th style="width: 8%;">Status</th>
-                <th style="width: 7%;">Actions</th>
             </tr>
         </thead>
 
         <tbody>
             @forelse ($groupedApplications as $category => $applicationGroup)
                 <tr class="category-row">
-                    <td colspan="10">{{ $category }} ({{ $applicationGroup->count() }} applications)</td>
+                    <td colspan="9">{{ $category }} ({{ $applicationGroup->count() }} applications)</td>
                 </tr>
 
                 @foreach ($applicationGroup as $index => $application)
@@ -197,13 +196,10 @@
                             {{ $application->jobSeeker->user->telephone ?? 'N/A' }}
                             <br><small>{{ $application->jobSeeker->user->address ?? 'N/A' }}</small>
                         </td>
-                        <td>{{ $application->jobVacancy->job_title ?? 'N/A' }}</td>
+                        <td>{{ $application->jobVacancy->title ?? 'N/A' }}</td>
                         <td>{{ $application->jobVacancy->employer->user->name ?? 'N/A' }}</td>
                         <td>{{ $application->jobVacancy->category->name ?? 'N/A' }}</td>
-                        <td class="text-right">
-                            ₱{{ number_format($application->jobVacancy->salary_range_from ?? 0, 0) }} -
-                            ₱{{ number_format($application->jobVacancy->salary_range_to ?? 0, 0) }}
-                        </td>
+                        <td class="text-right">{{ $application->jobVacancy->salary }}</td>
                         <td class="text-center">{{ $application->created_at->format('M d, Y') }}</td>
                         <td class="text-center">
                             @php
@@ -218,18 +214,11 @@
                                 {{ ucfirst(str_replace('_', ' ', $application->status)) }}
                             </span>
                         </td>
-                        <td class="text-center">
-                            @if ($application->resume_path)
-                                <small>Resume Available</small>
-                            @else
-                                <small>No Resume</small>
-                            @endif
-                        </td>
                     </tr>
                 @endforeach
             @empty
                 <tr>
-                    <td colspan="10" style="text-align:center; padding: 20px;">
+                    <td colspan="9" style="text-align:center; padding: 20px;">
                         No job applications found for the selected filters.
                     </td>
                 </tr>

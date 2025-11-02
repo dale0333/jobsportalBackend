@@ -27,7 +27,8 @@ class BulkUploadController extends Controller
 
             $query = BulkUpload::with('user');
 
-            // ✅ Properly group search conditions
+            $query->where('created_at', '>=', now()->subMonths(6));
+
             if (!empty($search)) {
                 $query->where(function ($q) use ($search) {
                     $q->where('filename', 'like', "%{$search}%");
@@ -45,7 +46,7 @@ class BulkUploadController extends Controller
 
             return $this->successResponse($data, 'Fetched data successfully.', 200);
         } catch (\Throwable $th) {
-            return $this->errorResponse('Failed to fetch.' . $th->getMessage(), 500,);
+            return $this->errorResponse('Failed to fetch.' . $th->getMessage(), 500);
         }
     }
 

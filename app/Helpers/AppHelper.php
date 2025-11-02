@@ -160,6 +160,8 @@ class AppHelper
                 'type'      => $type,
                 'userName'  => $user->name,
                 'timestamp' => now()->format('F j, Y \a\t g:i A'),
+                'appName' => config('app.name'),
+                'supportEmail' => config('app.support_email'),
                 'data'      => $data,
             ];
 

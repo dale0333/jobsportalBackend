@@ -9,9 +9,6 @@ use App\Helpers\AppHelper;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Mail;
 
-use App\Services\appService;
-
-
 class EmailController extends Controller
 {
     use ApiResponseTrait;

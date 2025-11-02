@@ -5,8 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
+
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 use App\Helpers\AppHelper;
 use App\Traits\ApiResponseTrait;
@@ -15,9 +20,6 @@ class AuthController extends Controller
 {
     use ApiResponseTrait;
 
-    /**
-     * 🔹 LOGIN
-     */
     public function login(Request $request)
     {
         $request->validate([
@@ -62,9 +64,6 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * 🔹 REGISTER
-     */
     public function register(Request $request)
     {
         $request->validate([
@@ -157,5 +156,148 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'You have been logged out successfully.',
         ], 200);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        // Validate request
+        $request->validate([
+            'email' => 'required|email|exists:users,email'
+        ], [
+            'email.exists' => 'No account found with this email address.'
+        ]);
+
+        try {
+            // Find user
+            $user = User::where('email', $request->email)->first();
+
+            // Generate reset token
+            $token = Str::random(60);
+
+            // Create or update password reset record
+            DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $request->email],
+                [
+                    'token' => Hash::make($token),
+                    'created_at' => Carbon::now()
+                ]
+            );
+
+            // Generate reset URL
+            $resetUrl = AppHelper::backEndUrl('reset-password') . "?token={$token}&email=" . urlencode($request->email);
+
+            AppHelper::mailerConfig();
+            $emailData = [
+                'title' => 'Password Reset Request - ' . config('app.name'),
+                'user' => $user,
+                'resetUrl' => $resetUrl,
+                'expiryTime' => config('auth.passwords.users.expire', 60),
+                'appName' => config('app.name'),
+                'currentYear' => date('Y'),
+                'supportEmail' => config('app.support_email'),
+            ];
+
+            // Send the email
+            Mail::send('emails.password-reset', $emailData, function ($message) use ($user, $emailData) {
+                $message->to($user->email)
+                    ->subject($emailData['title']);
+            });
+
+            return response()->json([
+                'message' => 'Password reset instructions have been sent to your email.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Password reset error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Unable to process your request. Please try again later.'
+            ], 500);
+        }
+    }
+
+    public function resetPassword(Request $request)
+    {
+        // Validate request
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        try {
+            // Find the password reset record
+            $resetRecord = DB::table('password_reset_tokens')
+                ->where('email', $request->email)
+                ->first();
+
+            if (!$resetRecord) {
+                return response()->json([
+                    'message' => 'Invalid or expired reset token.'
+                ], 400);
+            }
+
+            // Check if token is expired (60 minutes)
+            $tokenExpiry = config('auth.passwords.users.expire', 60);
+            $createdAt = Carbon::parse($resetRecord->created_at);
+
+            if ($createdAt->diffInMinutes(Carbon::now()) > $tokenExpiry) {
+                // Delete expired token
+                DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+                return response()->json([
+                    'message' => 'Reset token has expired. Please request a new password reset.'
+                ], 400);
+            }
+
+            // Verify token
+            if (!Hash::check($request->token, $resetRecord->token)) {
+                return response()->json([
+                    'message' => 'Invalid or expired reset token.'
+                ], 400);
+            }
+
+            // Find user and update password
+            $user = User::where('email', $request->email)->first();
+            $user->password = Hash::make($request->password);
+            $user->save();
+
+            // Delete the used token
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+            // Send success email (optional)
+            $this->sendPasswordResetSuccessEmail($user);
+
+            return response()->json([
+                'message' => 'Password has been reset successfully. You can now login with your new password.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Password reset error: ' . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Unable to reset password. Please try again later.'
+            ], 500);
+        }
+    }
+
+    private function sendPasswordResetSuccessEmail($user)
+    {
+        try {
+            AppHelper::mailerConfig();
+
+            $emailData = [
+                'title' => 'Password Reset Successful - ' . config('app.name'),
+                'user' => $user,
+                'appName' => config('app.name'),
+                'currentYear' => date('Y'),
+                'supportEmail' => config('app.support_email'),
+                'loginUrl' => AppHelper::backEndUrl('login'),
+            ];
+
+            Mail::send('emails.password-reset-success', $emailData, function ($message) use ($user, $emailData) {
+                $message->to($user->email)
+                    ->subject($emailData['title']);
+            });
+        } catch (\Exception $e) {
+            Log::error('Password reset success email error: ' . $e->getMessage());
+        }
     }
 }

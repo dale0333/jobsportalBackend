@@ -109,12 +109,16 @@ class JobApplicationController extends Controller
         ]);
 
         try {
-            $application = JobApplication::with(['jobSeeker.user', 'jobApplicationTransactions'])
-                ->find($validated['job_application_id']);
+            $application = JobApplication::with([
+                'jobSeeker.user',
+                'jobVacancy.employer.user'
+            ])->find($validated['job_application_id']);
 
             if (!$application) {
                 return $this->errorResponse('Job application not found.', 404);
             }
+
+            $user = $request->user();
 
             // ✅ Update application status
             $application->update([
@@ -123,30 +127,55 @@ class JobApplicationController extends Controller
 
             // ✅ Create a transaction record
             $application->jobApplicationTransactions()->create([
-                'process_by' => $request->user()->id,
+                'process_by' => $user->id,
                 'notes'      => $validated['notes'],
                 'status'     => $validated['status'],
             ]);
 
+            // ------------------------------------------------------
+            // ✅ Email Notification: Job Seeker
+            // ------------------------------------------------------
             $jobSeekerUser = $application->jobSeeker->user ?? null;
 
             if ($jobSeekerUser) {
                 AppHelper::sendNotificationEmail(
                     $jobSeekerUser,
-                    'application_update',
-                    'Your Job Application Status Updated',
-                    "Your application for '{$application->jobVacancy->title}' has been updated to '{$validated['status']}'.",
+                    'job_application_update',
+                    'Your Job Application Was Updated',
+                    "Your application for '{$application->jobVacancy->title}' was updated to '{$validated['status']}'.",
                     [
-                        'job_vacancy_id'     => $application->jobVacancy->id,
-                        'job_application_id' => $application->id,
+                        'job_vacancy'      => $application->jobVacancy->title,
+                        'application_code' => $application->jobVacancy->code,
+                        'status'           => $validated['status'],
                     ]
                 );
             }
 
-            // ✅ Log action
+            // ------------------------------------------------------
+            // ✅ Stored Notification: Employer (NO email)
+            // ------------------------------------------------------
+            $employerUser = $application->jobVacancy->employer->user ?? null;
+
+            if ($employerUser) {
+                AppHelper::storedNotification(
+                    $employerUser,
+                    'job_application_update',
+                    'Job Application Status Updated',
+                    "The application from '{$jobSeekerUser->name}' for '{$application->jobVacancy->title}' is now '{$validated['status']}'.",
+                    [
+                        'job_vacancy'      => $application->jobVacancy->title,
+                        'application_code' => $application->jobVacancy->code,
+                        'applicant_name'   => $jobSeekerUser->name,
+                        'status'           => $validated['status'],
+                        'cover_letter'     => $application->cover_letter ?? 'No cover letter provided',
+                    ]
+                );
+            }
+
+            // ✅ Activity log
             AppHelper::userLog(
-                $request->user()->id,
-                "Processed Job Application '{$application->id}' - Status set to '{$validated['status']}'"
+                $user->id,
+                "Processed Job Application '{$application->id}' — Status '{$validated['status']}'"
             );
 
             return $this->successResponse($application, 'Job application processed successfully!', 201);

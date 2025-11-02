@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\{JobVacancy, Notification, JobApplication, User, Category};
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use App\Traits\ApiResponseTrait;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\GenericExport;
 
 class DashboardController extends Controller
 {
@@ -673,148 +676,310 @@ class DashboardController extends Controller
     }
 
     // reports =====================================================
+    // public function generateReport(Request $request)
+    // {
+    //     try {
+    //         $filters = $request->all();
+
+    //         // --- JOB VACANCIES REPORT ---
+    //         if (!empty($filters['reportType']) && $filters['reportType'] === 'jobs') {
+    //             $query = JobVacancy::with([
+    //                 'category',
+    //                 'jobQualify',
+    //                 'jobLocation',
+    //                 'jobType',
+    //                 'employer.user'
+    //             ])->where('is_active', true);
+
+    //             if (!empty($filters['status']) && $filters['status'] !== 'all') {
+    //                 $query->where('is_active', $filters['status'] === 'active');
+    //             }
+
+    //             if (!empty($filters['dateRange'])) {
+    //                 $dates = explode(' to ', $filters['dateRange']);
+
+    //                 if (count($dates) === 2) {
+    //                     $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
+    //                     $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
+
+    //                     $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+    //                 }
+    //             }
+
+    //             $vacancies = $query->latest()->get();
+
+    //             $data = [
+    //                 'title' => 'Job Vacancies Report',
+    //                 'generated_at' => now()->format('d F Y'),
+    //                 'vacancies' => $vacancies,
+    //                 'filters' => $filters,
+    //             ];
+
+    //             $pdf = Pdf::loadView('reports.job_vacancies', $data)
+    //                 ->setPaper('a4', 'portrait');
+
+    //             return $pdf->download('Job_Vacancies_Report_' . now()->format('Ymd_His') . '.pdf');
+    //         }
+
+    //         // --- USERS REPORT ---
+    //         elseif (!empty($filters['reportType']) && $filters['reportType'] === 'users') {
+    //             $query = User::query()
+    //                 ->where('is_active', true)
+    //                 ->whereNotIn('user_type', ['admin', 'secretariat']);
+
+    //             if (!empty($filters['status']) && $filters['status'] !== 'all') {
+    //                 $query->where('is_active', $filters['status'] === 'active');
+    //             }
+
+    //             if (!empty($filters['userType']) && $filters['userType'] !== 'all') {
+    //                 $query->where('user_type', $filters['userType']);
+    //             }
+
+    //             if (!empty($filters['dateRange'])) {
+    //                 $dates = explode(' to ', $filters['dateRange']);
+
+    //                 if (count($dates) === 2) {
+    //                     $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
+    //                     $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
+
+    //                     $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+    //                 }
+    //             }
+
+    //             $users = $query->latest()->get();
+
+    //             $data = [
+    //                 'title' => 'Users Report',
+    //                 'generated_at' => now()->format('d F Y'),
+    //                 'users' => $users,
+    //                 'filters' => $filters,
+    //             ];
+
+    //             $pdf = Pdf::loadView('reports.users', $data)
+    //                 ->setPaper('a4', 'portrait');
+
+    //             return $pdf->download('Users_Report_' . now()->format('Ymd_His') . '.pdf');
+    //         }
+
+    //         // --- APPLICATIONS REPORT ---
+    //         elseif (!empty($filters['reportType']) && $filters['reportType'] === 'applications') {
+    //             $query = JobApplication::with([
+    //                 'jobSeeker.user',
+    //                 'jobVacancy.category',
+    //                 'jobVacancy.employer.user'
+    //             ]);
+
+    //             // Filter by application status
+    //             if (!empty($filters['status']) && $filters['status'] !== 'all') {
+    //                 $query->where('status', $filters['status']);
+    //             }
+
+    //             // Filter by job category
+    //             if (!empty($filters['category']) && $filters['category'] !== 'all') {
+    //                 $query->whereHas('jobVacancy', function ($q) use ($filters) {
+    //                     $q->where('job_category', $filters['category']);
+    //                 });
+    //             }
+
+    //             // Filter by date range
+    //             if (!empty($filters['dateRange'])) {
+    //                 $dates = explode(' to ', $filters['dateRange']);
+
+    //                 if (count($dates) === 2) {
+    //                     $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
+    //                     $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
+
+    //                     $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+    //                 }
+    //             }
+
+    //             $applications = $query->latest()->get();
+
+    //             $data = [
+    //                 'title' => 'Job Applications Report',
+    //                 'generated_at' => now()->format('d F Y'),
+    //                 'applications' => $applications,
+    //                 'filters' => $filters,
+    //             ];
+
+    //             $pdf = Pdf::loadView('reports.applications', $data)
+    //                 ->setPaper('a4', 'landscape'); // Landscape for more columns
+
+    //             return $pdf->download('Job_Applications_Report_' . now()->format('Ymd_His') . '.pdf');
+    //         }
+
+    //         // --- FALLBACK: invalid reportType ---
+    //         return response()->json([
+    //             'error' => 'Invalid report type.',
+    //             'message' => 'The selected report type is not supported.',
+    //         ], 400);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'error' => 'Failed to generate report.',
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+
     public function generateReport(Request $request)
     {
         try {
             $filters = $request->all();
+            $format  = $filters['format'] ?? 'pdf';
 
-            // --- JOB VACANCIES REPORT ---
-            if (!empty($filters['reportType']) && $filters['reportType'] === 'jobs') {
-                $query = JobVacancy::with([
-                    'category',
-                    'jobQualify',
-                    'jobLocation',
-                    'jobType',
-                    'employer.user'
-                ])->where('is_active', true);
-
-                if (!empty($filters['status']) && $filters['status'] !== 'all') {
-                    $query->where('is_active', $filters['status'] === 'active');
-                }
-
-                if (!empty($filters['dateRange'])) {
-                    $dates = explode(' to ', $filters['dateRange']);
-
-                    if (count($dates) === 2) {
-                        $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
-                        $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
-
-                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
-                    }
-                }
-
-                $vacancies = $query->latest()->get();
-
-                $data = [
-                    'title' => 'Job Vacancies Report',
-                    'generated_at' => now()->format('d F Y'),
-                    'vacancies' => $vacancies,
-                    'filters' => $filters,
-                ];
-
-                $pdf = Pdf::loadView('reports.job_vacancies', $data)
-                    ->setPaper('a4', 'portrait');
-
-                return $pdf->download('Job_Vacancies_Report_' . now()->format('Ymd_His') . '.pdf');
+            // Validate format
+            if (!in_array($format, ['pdf', 'excel'])) {
+                return response()->json([
+                    'error' => 'Invalid format.',
+                    'message' => 'Supported formats: pdf, excel.',
+                ], 400);
             }
 
-            // --- USERS REPORT ---
-            elseif (!empty($filters['reportType']) && $filters['reportType'] === 'users') {
-                $query = User::query()
-                    ->where('is_active', true)
-                    ->whereNotIn('user_type', ['admin', 'secretariat']);
-
-                if (!empty($filters['status']) && $filters['status'] !== 'all') {
-                    $query->where('is_active', $filters['status'] === 'active');
+            // Parse date range (DRY)
+            $dateStart = $dateEnd = null;
+            if (!empty($filters['dateRange'])) {
+                $dates = explode(' to ', $filters['dateRange']);
+                if (count($dates) === 2) {
+                    $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
+                    $dateEnd   = Carbon::parse(trim($dates[1]))->endOfDay();
                 }
-
-                if (!empty($filters['userType']) && $filters['userType'] !== 'all') {
-                    $query->where('user_type', $filters['userType']);
-                }
-
-                if (!empty($filters['dateRange'])) {
-                    $dates = explode(' to ', $filters['dateRange']);
-
-                    if (count($dates) === 2) {
-                        $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
-                        $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
-
-                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
-                    }
-                }
-
-                $users = $query->latest()->get();
-
-                $data = [
-                    'title' => 'Users Report',
-                    'generated_at' => now()->format('d F Y'),
-                    'users' => $users,
-                    'filters' => $filters,
-                ];
-
-                $pdf = Pdf::loadView('reports.users', $data)
-                    ->setPaper('a4', 'portrait');
-
-                return $pdf->download('Users_Report_' . now()->format('Ymd_His') . '.pdf');
             }
 
-            // --- APPLICATIONS REPORT ---
-            elseif (!empty($filters['reportType']) && $filters['reportType'] === 'applications') {
-                $query = JobApplication::with([
-                    'jobSeeker.user',
-                    'jobVacancy.category',
-                    'jobVacancy.employer.user'
-                ]);
+            switch ($filters['reportType'] ?? null) {
 
-                // Filter by application status
-                if (!empty($filters['status']) && $filters['status'] !== 'all') {
-                    $query->where('status', $filters['status']);
-                }
+                // =================================================================
+                // JOBS REPORT
+                // =================================================================
+                case 'jobs':
+                    $query = JobVacancy::with([
+                        'category',
+                        'jobQualify',
+                        'jobLocation',
+                        'jobType',
+                        'employer.user'
+                    ]);
 
-                // Filter by job category
-                if (!empty($filters['category']) && $filters['category'] !== 'all') {
-                    $query->whereHas('jobVacancy', function ($q) use ($filters) {
-                        $q->where('job_category', $filters['category']);
-                    });
-                }
+                    if (!empty($filters['status']) && $filters['status'] !== 'all') {
+                        $query->where('is_active', $filters['status'] === 'active');
+                    }
 
-                // Filter by date range
-                if (!empty($filters['dateRange'])) {
-                    $dates = explode(' to ', $filters['dateRange']);
-
-                    if (count($dates) === 2) {
-                        $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
-                        $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
-
+                    if ($dateStart && $dateEnd) {
                         $query->whereBetween('created_at', [$dateStart, $dateEnd]);
                     }
-                }
 
-                $applications = $query->latest()->get();
+                    $results = $query->latest()->get();
 
-                $data = [
-                    'title' => 'Job Applications Report',
-                    'generated_at' => now()->format('d F Y'),
-                    'applications' => $applications,
-                    'filters' => $filters,
-                ];
+                    $data = [
+                        'title'        => 'Job Vacancies Report',
+                        'generated_at' => now()->format('d F Y'),
+                        'vacancies'    => $results,
+                        'filters'      => $filters,
+                    ];
 
-                $pdf = Pdf::loadView('reports.applications', $data)
-                    ->setPaper('a4', 'landscape'); // Landscape for more columns
+                    return $this->export($format, $data, 'reports.job_vacancies', 'reports.exports.job_vacancies', 'Job_Vacancies_Report');
 
-                return $pdf->download('Job_Applications_Report_' . now()->format('Ymd_His') . '.pdf');
+                    // =================================================================
+                    // USERS REPORT
+                    // =================================================================
+                case 'users':
+                    $query = User::query()
+                        ->whereNotIn('user_type', ['admin', 'secretariat']);
+
+                    if (!empty($filters['status']) && $filters['status'] !== 'all') {
+                        $query->where('is_active', $filters['status'] === 'active');
+                    }
+
+                    if (!empty($filters['userType']) && $filters['userType'] !== 'all') {
+                        $query->where('user_type', $filters['userType']);
+                    }
+
+                    if ($dateStart && $dateEnd) {
+                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+                    }
+
+                    $results = $query->latest()->get();
+
+                    $data = [
+                        'title'        => 'Users Report',
+                        'generated_at' => now()->format('d F Y'),
+                        'users'        => $results,
+                        'filters'      => $filters,
+                    ];
+
+                    return $this->export($format, $data, 'reports.users', 'reports.exports.users', 'Users_Report');
+
+                    // =================================================================
+                    // APPLICATIONS REPORT
+                    // =================================================================
+                case 'applications':
+                    $query = JobApplication::with([
+                        'jobSeeker.user',
+                        'jobVacancy.category',
+                        'jobVacancy.employer.user'
+                    ]);
+
+                    if (!empty($filters['status']) && $filters['status'] !== 'all') {
+                        $query->where('status', $filters['status']);
+                    }
+
+                    if (!empty($filters['category']) && $filters['category'] !== 'all') {
+                        $query->whereHas('jobVacancy', function ($q) use ($filters) {
+                            $q->where('job_category', $filters['category']);
+                        });
+                    }
+
+                    if ($dateStart && $dateEnd) {
+                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+                    }
+
+                    $results = $query->latest()->get();
+
+                    $data = [
+                        'title'        => 'Job Applications Report',
+                        'generated_at' => now()->format('d F Y'),
+                        'applications' => $results,
+                        'filters'      => $filters,
+                    ];
+
+                    return $this->export($format, $data, 'reports.applications', 'reports.exports.applications', 'Job_Applications_Report');
+
+                    // =================================================================
+                    // DEFAULT
+                    // =================================================================
+                default:
+                    return response()->json([
+                        'error'   => 'Invalid report type.',
+                        'message' => 'The selected report type is not supported.',
+                    ], 400);
             }
-
-            // --- FALLBACK: invalid reportType ---
-            return response()->json([
-                'error' => 'Invalid report type.',
-                'message' => 'The selected report type is not supported.',
-            ], 400);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to generate report.',
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function export($format, $data, $pdfView, $excelView, $filename)
+    {
+        // Log::info('Exporting report', [
+        //     'format' => $format,
+        //     'filters' => $data['filters'],
+        //     'filename' => $filename
+        // ]);
+
+        $timestamp = now()->format('Ymd_His');
+
+        if ($format === 'excel') {
+            return Excel::download(
+                new GenericExport($excelView, $data),
+                "{$filename}_{$timestamp}.xlsx"
+            );
+        }
+
+        $pdf = Pdf::loadView($pdfView, $data)->setPaper('a4', 'landscape');
+
+        return $pdf->download("{$filename}_{$timestamp}.pdf");
     }
 }

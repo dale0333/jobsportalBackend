@@ -22,7 +22,8 @@ use App\Http\Controllers\Setting\{
     SubAttributeController,
     AttributeController,
     CategoryController,
-    SubCategoryController
+    SubCategoryController,
+    ContactController
 };
 
 use App\Http\Controllers\ProfileMenu\{
@@ -81,9 +82,17 @@ Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
     // Public Reqeusts ======================================================
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+    Route::apiResource('get-in-touch', ContactController::class);
 
     Route::get('fetch-attributes', [FetchServiceController::class, 'fetchAttributes']);
     Route::get('fetch-categories', [FetchServiceController::class, 'fetchCategories']);
+
+    Route::get('view-jobs', [FetchServiceController::class, 'viewJobs']);
+    Route::get('view-job-details/{code}', [FetchServiceController::class, 'viewJobDetails']);
+    Route::get('view-categories', [FetchServiceController::class, 'viewCategories']);
 });
 
 

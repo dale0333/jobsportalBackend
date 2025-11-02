@@ -4,6 +4,8 @@ return [
 
     'system_key' => env('APP_SYSTEM_KEY', 'default-key'),
 
+    'support_email' => env('APP_SUPPORT_EMAIL', 'cdc_noprely@gmail.com'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Name

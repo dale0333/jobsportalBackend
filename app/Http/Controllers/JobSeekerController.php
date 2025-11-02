@@ -230,9 +230,9 @@ class JobSeekerController extends Controller
     {
         try {
             $request->validate([
-                'job_id' => 'required|exists:job_vacancies,id',
-                'coverLetter' => 'required|string|max:5000',
-                'files.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:5120',
+                'job_id'       => 'required|exists:job_vacancies,id',
+                'coverLetter'  => 'required|string|max:5000',
+                'files.*'      => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:5120',
             ]);
 
             $user = $request->user();
@@ -248,6 +248,7 @@ class JobSeekerController extends Controller
             // ✅ Handle attachments
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
+
                     $uniqueName = uniqid() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
                     $folder = 'attachments/job_applicant';
                     $path = $file->storeAs($folder, $uniqueName, 'public');
@@ -271,26 +272,38 @@ class JobSeekerController extends Controller
                 ]),
             ];
 
-            AppHelper::storedNotification(
-                $application->jobVacancy->employer->user,
-                'new_application',
-                'New Job Application Received',
-                "{$user->name} has applied for your job post '{$application->jobVacancy->title}'.",
-                [
-                    'job_vacancy_id'     => $application->jobVacancy->id,
-                    'job_application_id' => $application->id,
-                    'applicant_name'     => $user->name,
-                ]
-            );
+            // ------------------------------------------------------
+            // ✅ Stored Notification: Employer (NO email)
+            // ------------------------------------------------------
+            $employerUser = $application->jobVacancy->employer->user ?? null;
 
+            if ($employerUser) {
+                AppHelper::storedNotification(
+                    $employerUser,
+                    'job_application',
+                    'New Job Application Received',
+                    "{$user->name} has applied for your job post '{$application->jobVacancy->title}'.",
+                    [
+                        'job_vacancy'      => $application->jobVacancy->title,
+                        'application_code' => $application->jobVacancy->code,
+                        'applicant_name'   => $user->name,
+                        'cover_letter'     => $application->cover_letter ?? 'No cover letter provided',
+                    ]
+                );
+            }
+
+            // ------------------------------------------------------
+            // ✅ Email Notification: Applicant (Job Seeker)
+            // ------------------------------------------------------
             AppHelper::sendNotificationEmail(
                 $user,
-                'application_submitted',
+                'job_application',
                 'Your Job Application Was Submitted',
                 "Your application for '{$application->jobVacancy->title}' was submitted successfully.",
                 [
-                    'job_vacancy_id'     => $application->jobVacancy->id,
-                    'job_application_id' => $application->id,
+                    'job_vacancy'      => $application->jobVacancy->title,
+                    'application_code' => $application->jobVacancy->code,
+                    'applicant_name'   => $user->name,
                 ]
             );
 
@@ -299,6 +312,7 @@ class JobSeekerController extends Controller
             return $this->errorResponse('Failed to submit job application', 500, $e->getMessage());
         }
     }
+
 
     public function update(Request $request, string $code)
     {

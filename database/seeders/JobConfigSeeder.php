@@ -14,17 +14,58 @@ class JobConfigSeeder extends Seeder
         $now = Carbon::now();
 
         $categories = [
-            ['name' => 'IT & Software', 'description' => 'Jobs in information technology and software development'],
-            ['name' => 'Finance & Accounting', 'description' => 'Roles in finance, accounting, and banking'],
-            ['name' => 'Healthcare', 'description' => 'Medical and healthcare-related job opportunities'],
-            ['name' => 'Education & Training', 'description' => 'Teaching and educational roles'],
-            ['name' => 'Sales & Marketing', 'description' => 'Positions in sales, marketing, and business development'],
-            ['name' => 'Customer Service', 'description' => 'Customer support and service-oriented jobs'],
-            ['name' => 'Engineering', 'description' => 'Engineering roles across various disciplines'],
-            ['name' => 'Human Resources', 'description' => 'HR management and recruitment positions'],
-            ['name' => 'Design & Creative', 'description' => 'Creative roles in design and multimedia'],
-            ['name' => 'Operations & Logistics', 'description' => 'Operations, supply chain and logistics positions'],
+            [
+                'name' => 'IT & Software',
+                'description' => 'Jobs in information technology and software development',
+                'icon' => 'ri-computer-line'
+            ],
+            [
+                'name' => 'Finance & Accounting',
+                'description' => 'Roles in finance, accounting, and banking',
+                'icon' => 'ri-wallet-3-line'
+            ],
+            [
+                'name' => 'Healthcare',
+                'description' => 'Medical and healthcare-related job opportunities',
+                'icon' => 'ri-stethoscope-line'
+            ],
+            [
+                'name' => 'Education & Training',
+                'description' => 'Teaching and educational roles',
+                'icon' => 'ri-book-open-line'
+            ],
+            [
+                'name' => 'Sales & Marketing',
+                'description' => 'Positions in sales, marketing, and business development',
+                'icon' => 'ri-bar-chart-2-line'
+            ],
+            [
+                'name' => 'Customer Service',
+                'description' => 'Customer support and service-oriented jobs',
+                'icon' => 'ri-customer-service-2-line'
+            ],
+            [
+                'name' => 'Engineering',
+                'description' => 'Engineering roles across various disciplines',
+                'icon' => 'ri-tools-line'
+            ],
+            [
+                'name' => 'Human Resources',
+                'description' => 'HR management and recruitment positions',
+                'icon' => 'ri-user-settings-line'
+            ],
+            [
+                'name' => 'Design & Creative',
+                'description' => 'Creative roles in design and multimedia',
+                'icon' => 'ri-paint-brush-line'
+            ],
+            [
+                'name' => 'Operations & Logistics',
+                'description' => 'Operations, supply chain and logistics positions',
+                'icon' => 'ri-truck-line'
+            ],
         ];
+
 
         $subCategories = [
             // IT & Software
@@ -114,6 +155,7 @@ class JobConfigSeeder extends Seeder
             $categoryId = DB::table('categories')->insertGetId([
                 'name' => $category['name'],
                 'slug' => Str::slug($category['name']),
+                'icon' => $category['icon'],
                 'description' => $category['description'],
                 'is_active' => true,
                 'created_at' => $now,

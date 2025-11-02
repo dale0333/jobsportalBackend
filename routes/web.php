@@ -3,12 +3,15 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
+// Public welcome page
 Route::get('/', function () {
     return view('welcome');
 });
 
+// Route to run Artisan commands programmatically
 Route::get('/artisan/{type}', function ($type) {
 
+    // Whitelisted commands
     $allowedCommands = [
         'storage-link'   => 'storage:link',
         'optimize'       => 'optimize',
@@ -23,13 +26,13 @@ Route::get('/artisan/{type}', function ($type) {
     }
 
     try {
+        // Run the command programmatically
         Artisan::call($allowedCommands[$type]);
-        $output = Artisan::output();
 
         return response()->json([
             'success' => true,
             'command' => $allowedCommands[$type],
-            'output'  => $output
+            'output'  => Artisan::output()
         ]);
     } catch (\Exception $e) {
         return response()->json([

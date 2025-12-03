@@ -177,4 +177,23 @@ class AppHelper
             Log::error("Failed to send notification email to {$user->email}: " . $e->getMessage());
         }
     }
+
+    public static function systemNotificaiton($user, $type, $title, $message, array $data = [])
+    {
+        try {
+            // Create notification record
+            Notification::create([
+                'user_id' => $user->id,
+                'type'    => $type,
+                'title'   => $title,
+                'message' => $message,
+                'data'    => !empty($data) ? json_encode($data) : null,
+                'is_read' => false,
+            ]);
+
+            Log::info("Notification has been stored.");
+        } catch (\Exception $e) {
+            Log::error("Failed to save notification" . $e->getMessage());
+        }
+    }
 }

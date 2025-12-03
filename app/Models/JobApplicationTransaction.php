@@ -14,6 +14,7 @@ class JobApplicationTransaction extends Model
         'process_by',
         'notes',
         'status',
+        'finalized_date'
     ];
 
     public function processedBy()

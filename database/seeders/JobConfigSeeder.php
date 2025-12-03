@@ -180,7 +180,47 @@ class JobConfigSeeder extends Seeder
         // Define job config groups with icons and details
         $jobConfigs = [
             [
-                'name' => 'Types',
+                'name' => 'Industries',
+                'icon' => 'ri-building-line',
+                'description' => 'Specific industry sectors and domains',
+                'details' => [
+                    ['name' => 'Technology Industry', 'description' => 'Software, hardware, and IT services industry'],
+                    ['name' => 'Healthcare Industry', 'description' => 'Medical services, pharmaceuticals, and healthcare providers'],
+                    ['name' => 'Finance Banking', 'description' => 'Banking, investment, and financial services sector'],
+                    ['name' => 'Retail Industry', 'description' => 'Consumer goods, e-commerce, and retail operations'],
+                    ['name' => 'Manufacturing Industry', 'description' => 'Production, assembly, and industrial manufacturing'],
+                    ['name' => 'Hospitality Industry', 'description' => 'Hotels, restaurants, and tourism services'],
+                ],
+            ],
+            [
+                'name' => 'Education',
+                'icon' => 'ri-graduation-cap-line',
+                'description' => 'Educational qualifications and certifications',
+                'details' => [
+                    ['name' => 'High School Diploma', 'description' => 'Secondary education completion certificate'],
+                    ['name' => 'Associate Degree', 'description' => 'Two-year college degree or equivalent'],
+                    ['name' => 'Bachelor Degree', 'description' => 'Four-year undergraduate university degree'],
+                    ['name' => 'Master Degree', 'description' => 'Postgraduate degree for advanced specialization'],
+                    ['name' => 'Doctorate PhD', 'description' => 'Highest academic degree for research and academia'],
+                    ['name' => 'Professional Certification', 'description' => 'Industry-specific certifications and licenses'],
+                    ['name' => 'Vocational Diploma', 'description' => 'Vocational or technical training certification'],
+                    ['name' => 'No Formal Education', 'description' => 'Roles that prioritize skills over formal education'],
+                ],
+            ],
+            [
+                'name' => 'Work Location',
+                'icon' => 'ri-map-pin-line',
+                'description' => 'Work location types and arrangements',
+                'details' => [
+                    ['name' => 'Main Office', 'description' => 'Company headquarters and primary work location'],
+                    ['name' => 'Branch Office', 'description' => 'Regional branches and satellite offices'],
+                    ['name' => 'Remote Location', 'description' => 'Work from home or any remote location'],
+                    ['name' => 'Hybrid', 'description' => 'Combination of office and remote work'],
+                    ['name' => 'On-site', 'description' => 'Work at client locations or specific project sites'],
+                ],
+            ],
+            [
+                'name' => 'Employment Type',
                 'icon' => 'ri-briefcase-2-line',
                 'description' => 'Employment types and work arrangements',
                 'details' => [
@@ -190,6 +230,33 @@ class JobConfigSeeder extends Seeder
                     ['name' => 'Contract', 'description' => 'Fixed-term jobs with specific project durations'],
                     ['name' => 'Temporary', 'description' => 'Short-term employment for seasonal or project-based work'],
                     ['name' => 'Remote Work', 'description' => 'Work from anywhere with virtual collaboration'],
+                ],
+            ],
+            [
+                'name' => 'Experience Level',
+                'icon' => 'ri-lightbulb-line',
+                'description' => 'Experience levels and seniority',
+                'details' => [
+                    ['name' => 'Entry Level', 'description' => 'Beginner positions for recent graduates or career changers'],
+                    ['name' => 'Mid Level', 'description' => 'Experienced professionals with 2-5 years of relevant experience'],
+                    ['name' => 'Senior Level', 'description' => 'Senior staff with 5+ years of expertise and leadership'],
+                    ['name' => 'Manager', 'description' => 'Management roles with team leadership responsibilities'],
+                    ['name' => 'Director', 'description' => 'Executive leadership with departmental oversight'],
+                    ['name' => 'Executive', 'description' => 'C-level positions with organizational leadership'],
+                ],
+            ],
+            [
+                'name' => 'Experience',
+                'icon' => 'ri-time-line',
+                'description' => 'Years of professional experience required',
+                'details' => [
+                    ['name' => '0-1 Year', 'description' => 'Fresh graduates or less than 1 year of experience'],
+                    ['name' => '1-2 Years', 'description' => 'Early career professionals with 1-2 years of experience'],
+                    ['name' => '2-3 Years', 'description' => 'Developing professionals with 2-3 years of experience'],
+                    ['name' => '3-5 Years', 'description' => 'Experienced professionals with 3-5 years in the field'],
+                    ['name' => '5-7 Years', 'description' => 'Senior professionals with 5-7 years of expertise'],
+                    ['name' => '7-10 Years', 'description' => 'Highly experienced professionals with 7-10 years'],
+                    ['name' => '10+ Years', 'description' => 'Expert-level professionals with over 10 years experience'],
                 ],
             ],
             [
@@ -205,87 +272,7 @@ class JobConfigSeeder extends Seeder
                     ['name' => 'Project Management', 'description' => 'Planning, executing, and managing projects effectively'],
                 ],
             ],
-            [
-                'name' => 'Levels',
-                'icon' => 'ri-lightbulb-line',
-                'description' => 'Experience levels and seniority',
-                'details' => [
-                    ['name' => 'Entry Level', 'description' => 'Beginner positions for recent graduates or career changers'],
-                    ['name' => 'Mid Level', 'description' => 'Experienced professionals with 2-5 years of relevant experience'],
-                    ['name' => 'Senior Level', 'description' => 'Senior staff with 5+ years of expertise and leadership'],
-                    ['name' => 'Manager', 'description' => 'Management roles with team leadership responsibilities'],
-                    ['name' => 'Director', 'description' => 'Executive leadership with departmental oversight'],
-                    ['name' => 'Executive', 'description' => 'C-level positions with organizational leadership'],
-                ],
-            ],
-            [
-                'name' => 'Locations',
-                'icon' => 'ri-map-pin-line',
-                'description' => 'Work location types and arrangements',
-                'details' => [
-                    ['name' => 'Main Office', 'description' => 'Company headquarters and primary work location'],
-                    ['name' => 'Branch Office', 'description' => 'Regional branches and satellite offices'],
-                    ['name' => 'Remote Location', 'description' => 'Work from home or any remote location'],
-                    ['name' => 'Hybrid', 'description' => 'Combination of office and remote work'],
-                    ['name' => 'On-site', 'description' => 'Work at client locations or specific project sites'],
-                ],
-            ],
-            [
-                'name' => 'Benefits',
-                'icon' => 'ri-gift-line',
-                'description' => 'Employee benefits and perks',
-                'details' => [
-                    ['name' => 'Health Insurance', 'description' => 'Comprehensive medical, dental, and vision insurance coverage'],
-                    ['name' => 'Gym Membership', 'description' => 'Fitness perks and wellness program benefits'],
-                    ['name' => 'Transportation Allowance', 'description' => 'Daily transport support and commuting assistance'],
-                    ['name' => 'Meal Allowance', 'description' => 'Food and meal subsidies for employees'],
-                    ['name' => 'Performance Bonus', 'description' => 'Incentive bonuses based on performance metrics'],
-                    ['name' => 'Paid Time Off', 'description' => 'Vacation days, sick leave, and personal time'],
-                ],
-            ],
-            [
-                'name' => 'Qualifications',
-                'icon' => 'ri-graduation-cap-line',
-                'description' => 'Educational qualifications and certifications',
-                'details' => [
-                    ['name' => 'High School Diploma', 'description' => 'Secondary education completion certificate'],
-                    ['name' => 'Associate Degree', 'description' => 'Two-year college degree or equivalent'],
-                    ['name' => 'Bachelor Degree', 'description' => 'Four-year undergraduate university degree'],
-                    ['name' => 'Master Degree', 'description' => 'Postgraduate degree for advanced specialization'],
-                    ['name' => 'Doctorate PhD', 'description' => 'Highest academic degree for research and academia'],
-                    ['name' => 'Professional Certification', 'description' => 'Industry-specific certifications and licenses'],
-                    ['name' => 'Vocational Diploma', 'description' => 'Vocational or technical training certification'],
-                    ['name' => 'No Formal Education', 'description' => 'Roles that prioritize skills over formal education'],
-                ],
-            ],
-            [
-                'name' => 'Languages',
-                'icon' => 'ri-global-line',
-                'description' => 'Language proficiency requirements',
-                'details' => [
-                    ['name' => 'English Language', 'description' => 'English language proficiency for business communication'],
-                    ['name' => 'Spanish Language', 'description' => 'Spanish language skills for multilingual roles'],
-                    ['name' => 'French Language', 'description' => 'French language proficiency for international business'],
-                    ['name' => 'German Language', 'description' => 'German language skills for European markets'],
-                    ['name' => 'Chinese Language', 'description' => 'Mandarin or Cantonese for Asian market roles'],
-                    ['name' => 'Japanese Language', 'description' => 'Japanese language proficiency for business in Japan'],
-                ],
-            ],
-            [
-                'name' => 'Industries',
-                'icon' => 'ri-building-line',
-                'description' => 'Specific industry sectors and domains',
-                'details' => [
-                    ['name' => 'Technology Industry', 'description' => 'Software, hardware, and IT services industry'],
-                    ['name' => 'Healthcare Industry', 'description' => 'Medical services, pharmaceuticals, and healthcare providers'],
-                    ['name' => 'Finance Banking', 'description' => 'Banking, investment, and financial services sector'],
-                    ['name' => 'Retail Industry', 'description' => 'Consumer goods, e-commerce, and retail operations'],
-                    ['name' => 'Manufacturing Industry', 'description' => 'Production, assembly, and industrial manufacturing'],
-                    ['name' => 'Hospitality Industry', 'description' => 'Hotels, restaurants, and tourism services'],
-                ],
-            ],
         ];
-
         foreach ($jobConfigs as $config) {
             // Insert parent job config
             $jobConfigId = DB::table('attributes')->insertGetId([

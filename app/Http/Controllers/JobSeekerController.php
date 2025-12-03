@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{JobVacancy, JobView, JobRating, JobApplication};
+use App\Models\{JobVacancy, JobView, JobRating, JobApplication, JobFavorite};
 use App\Traits\ApiResponseTrait;
 use App\Helpers\AppHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+
+use App\Jobs\SendApplicationStatusNotification;
 
 class JobSeekerController extends Controller
 {
@@ -28,7 +30,16 @@ class JobSeekerController extends Controller
 
             $query = JobVacancy::where('is_active', true)
                 ->whereDate('deadline', '>=', Carbon::today())
-                ->with(['category', 'jobLocation', 'jobType', 'jobQualify', 'jobLevel', 'ratings', 'employer.user']);
+                ->with([
+                    'category',
+                    'jobLocation',
+                    'jobType',
+                    'jobQualify',
+                    'jobLevel',
+                    'jobExperience',
+                    'ratings',
+                    'employer.user',
+                ]);
 
             // 🧠 Personalized sorting: prioritize jobs matching seeker’s services
             $services = [];
@@ -55,12 +66,10 @@ class JobSeekerController extends Controller
                 }
             }
 
-
             // 🔍 Search filter
             if (!empty($search)) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhere('content', 'like', "%{$search}%");
+                    $q->where('title', 'like', "%{$search}%");
                 });
             }
 
@@ -113,28 +122,38 @@ class JobSeekerController extends Controller
             // 🧮 Compute how many items displayed so far
             $displayed = $data->perPage() * ($data->currentPage() - 1) + count($data->items());
 
+
+
             // 🧾 Transform data
             $formattedData = collect($data->items())->map(function ($item) use ($request) {
+
+
                 return [
                     'id'             => $item->id,
                     'title'          => $item->title,
                     'code'           => $item->code,
-                    'content'        => $item->content,
+                    'qualifications' => $item->qualifications,
+                    'description'    => $item->description,
+
                     'category'       => optional($item->category)->name,
                     'sub_categories' => AppHelper::getSubCategoryNames($item->job_sub_category),
                     'job_location'   => optional($item->jobLocation)->name,
                     'job_type'       => optional($item->jobType)->name,
                     'job_qualify'    => optional($item->jobQualify)->name,
                     'job_level'      => optional($item->jobLevel)->name,
+                    'job_experience' => optional($item->jobExperience)->name,
+
                     'available'      => $item->available,
-                    'job_experience' => $item->job_experience,
                     'salary'         => $item->salary,
                     'views'          => $item->views ?? 0,
                     'average_rate'   => number_format($item->ratings->avg('rate') ?? 0, 2),
                     'deadline'       => $item->deadline,
                     'post_at'        => $item->created_at,
-                    'seeker_rate'    => $this->jobRating($item, $request),
-                    'is_applied'     => $this->checkApplied($item, $request),
+
+                    'seeker_rate'  => $this->jobRating($item, $request),
+                    'is_applied'   => $this->checkApplied($item, $request),
+                    'is_favorite'  => $this->isFavorite($item, $request),
+
                     'company'        => $item->employer->user,
                 ];
             });
@@ -156,13 +175,15 @@ class JobSeekerController extends Controller
     {
         try {
             $item = JobVacancy::with([
+                'views',
+                'category',
                 'jobLocation',
                 'jobType',
                 'jobQualify',
                 'jobLevel',
-                'views',
+                'jobExperience',
                 'ratings',
-                'employer'
+                'employer.user'
             ])->where('code', $code)->first();
 
             if (!$item) {
@@ -198,7 +219,8 @@ class JobSeekerController extends Controller
                 'id'           => $item->id,
                 'title'        => $item->title,
                 'code'         => $item->code,
-                'content'      => $item->content,
+                'qualifications' => $item->qualifications,
+                'description'    => $item->description,
 
                 'category'     => optional($item->category)->name,
                 'sub_categories' => AppHelper::getSubCategoryNames($item->job_sub_category),
@@ -206,19 +228,20 @@ class JobSeekerController extends Controller
                 'job_type'     => optional($item->jobType)->name,
                 'job_qualify'  => optional($item->jobQualify)->name,
                 'job_level'    => optional($item->jobLevel)->name,
+                'job_experience' => optional($item->jobExperience)->name,
 
-                'available'      => $item->available,
-                'job_experience' => $item->job_experience,
+                'available'    => $item->available,
                 'salary'       => $item->salary,
                 'deadline'     => $item->deadline,
                 'views'        => $item->views ?? 0,
                 'average_rate' => number_format($item->ratings->avg('rate') ?? 0, 2),
                 'post_at'      => $item->created_at,
                 'company'      => $company,
+
                 'seeker_rate'  => $this->jobRating($item, $request),
                 'is_applied'   => $this->checkApplied($item, $request),
+                'is_favorite'  => $this->isFavorite($item, $request),
             ];
-
 
             return $this->successResponse($data, 'Job retrieved successfully');
         } catch (\Exception $e) {
@@ -243,6 +266,7 @@ class JobSeekerController extends Controller
                 'job_seeker_id'  => $user->jobSeeker?->id,
                 'cover_letter'   => $request->coverLetter,
                 'status'         => 'pending',
+                'type'           => 'applied',
             ]);
 
             // ✅ Handle attachments
@@ -272,47 +296,13 @@ class JobSeekerController extends Controller
                 ]),
             ];
 
-            // ------------------------------------------------------
-            // ✅ Stored Notification: Employer (NO email)
-            // ------------------------------------------------------
-            $employerUser = $application->jobVacancy->employer->user ?? null;
-
-            if ($employerUser) {
-                AppHelper::storedNotification(
-                    $employerUser,
-                    'job_application',
-                    'New Job Application Received',
-                    "{$user->name} has applied for your job post '{$application->jobVacancy->title}'.",
-                    [
-                        'job_vacancy'      => $application->jobVacancy->title,
-                        'application_code' => $application->jobVacancy->code,
-                        'applicant_name'   => $user->name,
-                        'cover_letter'     => $application->cover_letter ?? 'No cover letter provided',
-                    ]
-                );
-            }
-
-            // ------------------------------------------------------
-            // ✅ Email Notification: Applicant (Job Seeker)
-            // ------------------------------------------------------
-            AppHelper::sendNotificationEmail(
-                $user,
-                'job_application',
-                'Your Job Application Was Submitted',
-                "Your application for '{$application->jobVacancy->title}' was submitted successfully.",
-                [
-                    'job_vacancy'      => $application->jobVacancy->title,
-                    'application_code' => $application->jobVacancy->code,
-                    'applicant_name'   => $user->name,
-                ]
-            );
+            $this->storeNotification($application, $user);
 
             return $this->successResponse($data, 'Job application submitted successfully.', 200);
         } catch (\Exception $e) {
             return $this->errorResponse('Failed to submit job application', 500, $e->getMessage());
         }
     }
-
 
     public function update(Request $request, string $code)
     {
@@ -371,7 +361,68 @@ class JobSeekerController extends Controller
         return $request->user()
             ? JobApplication::where('job_vacancy_id', $item->id)
             ->where('job_seeker_id', optional($request->user()->jobSeeker)->id)
+            ->where('type', 'applied')
             ->exists()
             : false;
+    }
+
+    private function isFavorite($item, Request $request)
+    {
+        return $request->user()
+            ? JobFavorite::where('job_id', $item->id)
+            ->where('user_id', $request->user()->id)
+            ->where('is_favorite', true)
+            ->exists()
+            : false;
+    }
+
+    // private ==================================================================
+    private function storeNotification($application, $user)
+    {
+        $employerUser = $application->jobVacancy->employer->user ?? null;
+
+        if ($employerUser) {
+            AppHelper::storedNotification(
+                $employerUser,
+                'job_application',
+                'New Job Application Received',
+                "{$user->name} has applied for your job post '{$application->jobVacancy->title}'.",
+                [
+                    'job_vacancy'      => $application->jobVacancy->title,
+                    'application_code' => $application->jobVacancy->code,
+                    'applicant_name'   => $user->name,
+                    'cover_letter'     => $application->cover_letter ?? 'No cover letter provided',
+                ]
+            );
+        }
+
+        // Prepare job seeker data
+        $title = "Application Submitted Successfully";
+        $message = "Your application for '{$application->jobVacancy->title}' has been submitted successfully.";
+        $data = [
+            'job_title' => $application->jobVacancy->title,
+            'job_code' => $application->jobVacancy->code,
+            'status' => 'submitted',
+            'employer_name' => $application->jobVacancy->employer->user->name ?? 'Employer',
+            'updated_at' => now()->toDateTimeString(),
+            'application_id' => $application->id,
+            'action_type' => 'submitted',
+        ];
+
+        SendApplicationStatusNotification::dispatch(
+            $user,
+            'job_application_submitted',
+            $title,
+            $message,
+            $data
+        );
+
+        AppHelper::systemNotificaiton(
+            $user,
+            'job_application_submitted',
+            $title,
+            $message,
+            $data
+        );
     }
 }

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{User, Employer};
+use App\Models\{User, Employer, ManpowerAgency, PesoSchool};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
+
+use App\Jobs\SendNewAccountEmail;
 use App\Helpers\AppHelper;
 use App\Traits\ApiResponseTrait;
 
@@ -152,23 +154,23 @@ class UserController extends Controller
                 ]);
             }
 
-            // if ($validated['user_type'] === 'peso_school') {
-            //     PesoSchool::create([
-            //         'user_id' => $user->id,
-            //     ]);
-            // }
+            if ($validated['user_type'] === 'peso_school') {
+                PesoSchool::create([
+                    'user_id' => $user->id,
+                ]);
+            }
 
-            // if ($validated['user_type'] === 'manpower_agency') {
-            //     ManpowerAgency::create([
-            //         'user_id' => $user->id,
-            //     ]);
-            // }
+            if ($validated['user_type'] === 'manpower_agency') {
+                ManpowerAgency::create([
+                    'user_id' => $user->id,
+                ]);
+            }
 
             // Commit transaction
             DB::commit();
 
             // Send email verification (optional)
-            // $user->sendEmailVerificationNotification();
+            SendNewAccountEmail::dispatch($user, $validated['password'])->onQueue('high-priority');
 
             AppHelper::userLog(
                 $request->user()->id ?? $user->id,
@@ -181,7 +183,7 @@ class UserController extends Controller
             Log::error('User registration failed: ' . $e->getMessage());
 
             return $this->errorResponse(
-                'Registration failed. Please try again.',
+                'Registration failed. Please try again. ' . $e->getMessage(),
                 500,
                 config('app.debug') ? $e->getMessage() : null
             );

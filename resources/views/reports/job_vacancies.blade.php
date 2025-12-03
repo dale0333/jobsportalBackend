@@ -1,121 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <title>{{ $title }}</title>
     <style>
         body {
-            font-family: 'DejaVu Sans', sans-serif;
-            color: #333;
+            font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
-            position: relative;
+            margin: 20px 25px;
         }
 
         .header {
-            position: relative;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            position: relative;
         }
 
         .header img.left-logo {
             position: absolute;
             left: 0;
             top: 0;
-            height: 50px;
-            width: auto;
+            width: 150px;
         }
 
         .header img.right-logo {
             position: absolute;
             right: 0;
             top: 0;
-            height: 50px;
-            width: auto;
+            width: 150px;
         }
 
         h2 {
             margin: 0;
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: bold;
         }
 
         h4 {
-            text-align: center;
-            margin-top: 5px;
+            margin: 2px 0 0 0;
+            font-size: 13px;
             font-weight: normal;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
+            page-break-inside: auto;
         }
 
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
+        table thead th {
+            background: #eaeaea;
+            border: 1px solid #000;
+            font-size: 11px;
+            padding: 5px;
+            text-align: center;
         }
 
-        th {
-            background-color: #f8f9fa;
+        table tbody td {
+            border: 1px solid #000;
+            padding: 4px;
+            vertical-align: top;
+            font-size: 11px;
         }
 
-        .category-row {
-            background-color: #e9ecef;
+        .category-row td {
+            background: #cfcfcf;
             font-weight: bold;
+            font-size: 12px;
             text-transform: uppercase;
-            text-align: center;
+            text-align: left;
+            padding: 5px;
         }
 
-        .grand-total-row {
-            background-color: #f1f3f5;
+        .grand-total-row td {
+            background: #f0f0f0;
             font-weight: bold;
-            text-align: center;
         }
 
         .footer {
-            text-align: right;
-            font-size: 10px;
             margin-top: 15px;
-            color: #777;
+            text-align: right;
+            font-size: 11px;
+        }
+
+        @page {
+            margin: 20px 25px;
         }
     </style>
 </head>
 
 <body>
 
+    <!-- HEADER -->
     <div class="header">
-        <img src="{{ public_path('images/logo2.png') }}" class="left-logo" alt="Left Logo">
-        <img src="{{ public_path('images/logo1.png') }}" class="right-logo" alt="Right Logo">
-        <h2>{{ $title }}</h2>
-        <h4 style="margin-top: -2px">
-            as of {{ $generated_at }} <br>
-            Date Range: {{ $filters['dateRange'] }}
-        </h4>
+        <img src="{{ public_path('images/logo2.png') }}" class="left-logo">
+        <img src="{{ public_path('images/logo1.png') }}" class="right-logo">
+
+        <p
+            style="
+        margin: 0;
+        font-size: 15px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    ">
+            CLARK FREEPORT ZONE
+        </p>
+
+        <p style="
+        margin: -5px -0 -0 -0;
+        font-size: 30px;
+        font-weight: bold;
+    ">
+            {{ $title }}
+        </p>
+
+        <p style="
+        margin: -5px -0 -0 -0;
+        font-size: 16px;
+    ">
+            <i> as of {{ $generated_at }}</i>
+        </p>
     </div>
 
-
     @php
-        // ✅ Group vacancies by category and sort alphabetically
-        $groupedVacancies = $vacancies
+        $groupedVacancies = $records
             ->sortBy(fn($job) => $job->category->name ?? 'Unknown')
             ->groupBy(fn($job) => $job->category->name ?? 'Uncategorized');
 
-        // ✅ Compute grand total of available vacancies
-        $grandTotal = $vacancies->sum('available');
+        $grandTotal = $records->sum('available');
     @endphp
 
+    <!-- TABLE -->
     <table>
         <thead>
             <tr>
-                <th>Company Name</th>
-                <th>Position</th>
-                <th>Qualification</th>
-                <th>Work Experience</th>
-                <th>Salary</th>
-                <th>Vacants</th>
+                <th>COMPANY NAME</th>
+                <th>POSITION</th>
+                <th>EDUCATIONAL REQUIREMENT</th>
+                <th>WORK EXPERIENCE</th>
+                <th style="font-size: 14px">MINIMUM QUALIFICATION</th>
+                <th># OF VACANT POSITION</th>
             </tr>
         </thead>
 
@@ -130,9 +155,9 @@
                         <td>{{ $job->employer->user->name ?? 'N/A' }}</td>
                         <td>{{ $job->title }}</td>
                         <td>{{ $job->jobQualify->name ?? 'N/A' }}</td>
-                        <td>{{ $job->job_experience ? $job->job_experience . ' year(s)' : 'N/A' }}</td>
-                        <td>{{ $job->salary ?? 'N/A' }}</td>
-                        <td>{{ $job->available ?? 0 }}</td>
+                        <td>{{ $job->jobExperience->name ?? 'N/A' }}</td>
+                        <td>{!! nl2br($job->qualifications) !!}</td>
+                        <td style="text-align:center;">{{ $job->available ?? 0 }}</td>
                     </tr>
                 @endforeach
             @empty
@@ -141,17 +166,18 @@
                 </tr>
             @endforelse
 
-            @if ($vacancies->count() > 0)
+            @if ($records->count() > 0)
                 <tr class="grand-total-row">
                     <td colspan="5">Overall Total Vacancies</td>
-                    <td>{{ $grandTotal }}</td>
+                    <td style="text-align:center;">{{ $grandTotal }}</td>
                 </tr>
             @endif
         </tbody>
     </table>
 
+    <!-- FOOTER -->
     <div class="footer">
-        <p>Report generated by {{ auth()->user()->name ?? 'System' }}</p>
+        Report generated by {{ auth()->user()->name ?? 'System' }}
     </div>
 
 </body>

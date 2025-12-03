@@ -13,6 +13,7 @@ class JobApplication extends Model
         'job_seeker_id',
         'job_vacancy_id',
         'cover_letter',
+        'type',
         'status',
     ];
 

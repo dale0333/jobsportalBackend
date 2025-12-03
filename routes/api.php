@@ -7,13 +7,16 @@ use App\Http\Controllers\{
     AuthController,
     UserController,
     FetchServiceController,
-    JobEmployeerController,
+    JobVacancyController,
     JobSeekerController,
     JobApplicationController,
+    SeekerAppController,
+    SeekerDocumentController,
     UserLogController,
     ProfileSettingController,
     DashboardController,
-    BulkUploadController
+    BulkUploadController,
+    ReferenceController
 };
 
 use App\Http\Controllers\Setting\{
@@ -23,7 +26,7 @@ use App\Http\Controllers\Setting\{
     AttributeController,
     CategoryController,
     SubCategoryController,
-    ContactController
+    ContactController,
 };
 
 use App\Http\Controllers\ProfileMenu\{
@@ -58,8 +61,13 @@ Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
         Route::apiResource('manage-users', UserController::class);
 
         Route::apiResource('job-seekers', JobSeekerController::class);
-        Route::apiResource('job-employeers', JobEmployeerController::class);
+        Route::apiResource('job-vacancies', JobVacancyController::class);
         Route::apiResource('job-applications', JobApplicationController::class);
+
+        Route::apiResource('seeker-applications', SeekerAppController::class);
+        Route::apiResource('seeker-documents', SeekerDocumentController::class);
+
+        Route::apiResource('employer-references', ReferenceController::class);
 
         // Settings
         Route::apiResource('setting-email-smtp', EmailController::class);
@@ -77,6 +85,8 @@ Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
         Route::post('change-password', [ProfileSettingController::class, 'changePassword']);
         Route::post('job-expriences', [ProfileSettingController::class, 'storeJobExpriences']);
         Route::post('update-notifications', [ProfileSettingController::class, 'updateNotificationSettings']);
+
+        Route::get('request-data/{type}', [FetchServiceController::class, 'requestData']);
     });
 
     // Public Reqeusts ======================================================

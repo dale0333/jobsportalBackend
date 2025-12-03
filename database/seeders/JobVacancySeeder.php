@@ -9,8 +9,10 @@ use App\Models\{SubAttribute, Category};
 
 class JobVacancySeeder extends Seeder
 {
+
     public function run(): void
     {
+        $faker = \Faker\Factory::create();
         $now = Carbon::now();
 
         // Get a user ID to associate with the jobs
@@ -20,21 +22,40 @@ class JobVacancySeeder extends Seeder
         $categories = Category::with('subCategories')->get();
 
         // Get job config details
-        $locations = SubAttribute::whereHas('attribute', function ($query) {
-            $query->where('slug', 'locations');
+        $workLocation = SubAttribute::whereHas('attribute', function ($query) {
+            $query->where('slug', 'work-location');
         })->get();
 
-        $types = SubAttribute::whereHas('attribute', function ($query) {
-            $query->where('slug', 'types');
+        $employmentType = SubAttribute::whereHas('attribute', function ($query) {
+            $query->where('slug', 'employment-type');
         })->get();
 
-        $qualifications = SubAttribute::whereHas('attribute', function ($query) {
-            $query->where('slug', 'qualifications');
+        $education = SubAttribute::whereHas('attribute', function ($query) {
+            $query->where('slug', 'education');
         })->get();
 
-        $levels = SubAttribute::whereHas('attribute', function ($query) {
-            $query->where('slug', 'levels');
+        $experienceLevel = SubAttribute::whereHas('attribute', function ($query) {
+            $query->where('slug', 'experience-level');
         })->get();
+
+        $experience = SubAttribute::whereHas('attribute', function ($query) {
+            $query->where('slug', 'experience');
+        })->get();
+
+        // Salary options
+        $salaryOptions = [];
+
+        // Generate ranges 10,000 → 300,000 in steps of 20,000
+        for ($i = 10000; $i < 300000; $i += 20000) {
+            $salaryOptions[] = sprintf(
+                "₱%s - ₱%s",
+                number_format($i),          // 10,000
+                number_format($i + 20000)  // 30,000
+            );
+        }
+
+        // Add final "₱300,000+"
+        $salaryOptions[] = "₱300,000+";
 
         $jobVacancies = [
             [
@@ -45,12 +66,6 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '5+',
-                'salary' => '₱90,000 - ₱120,000',
                 'deadline' => $now->copy()->addDays(30),
             ],
             [
@@ -61,12 +76,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '3',
-                'salary' => '₱85,000 - ₱110,000',
+
                 'deadline' => $now->copy()->addDays(25),
             ],
             [
@@ -77,12 +87,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '2',
-                'salary' => '₱75,000 - ₱95,000',
+
                 'deadline' => $now->copy()->addDays(20),
             ],
             [
@@ -93,12 +98,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '1',
-                'salary' => '₱60,000 - ₱80,000',
+
                 'deadline' => $now->copy()->addDays(15),
             ],
             [
@@ -109,12 +109,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '4',
-                'salary' => '₱95,000 - ₱125,000',
+
                 'deadline' => $now->copy()->addDays(35),
             ],
             [
@@ -125,12 +120,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '3',
-                'salary' => '₱80,000 - ₱100,000',
+
                 'deadline' => $now->copy()->addDays(28),
             ],
             [
@@ -141,12 +131,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '4',
-                'salary' => '₱100,000 - ₱130,000',
+
                 'deadline' => $now->copy()->addDays(40),
             ],
             [
@@ -157,12 +142,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '3',
-                'salary' => '₱70,000 - ₱90,000',
+
                 'deadline' => $now->copy()->addDays(22),
             ],
             [
@@ -173,12 +153,7 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '4',
-                'salary' => '₱95,000 - ₱120,000',
+
                 'deadline' => $now->copy()->addDays(32),
             ],
             [
@@ -189,12 +164,6 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '5+',
-                'salary' => '₱110,000 - ₱140,000',
                 'deadline' => $now->copy()->addDays(45),
             ],
             [
@@ -205,12 +174,6 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '2',
-                'salary' => '₱65,000 - ₱85,000',
                 'deadline' => $now->copy()->addDays(18),
             ],
             [
@@ -221,12 +184,6 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '3',
-                'salary' => '₱75,000 - ₱95,000',
                 'deadline' => $now->copy()->addDays(25),
             ],
             [
@@ -237,12 +194,6 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '1',
-                'salary' => '₱35,000 - ₱45,000',
                 'deadline' => $now->copy()->addDays(12),
             ],
             [
@@ -253,12 +204,6 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '3',
-                'salary' => '₱80,000 - ₱100,000',
                 'deadline' => $now->copy()->addDays(30),
             ],
             [
@@ -269,12 +214,6 @@ class JobVacancySeeder extends Seeder
                     $randomCategory = $categories->random();
                     return $randomCategory->subCategories->random(min(2, $randomCategory->subCategories->count()))->pluck('id')->toArray();
                 },
-                'job_location' => $locations->random()->id,
-                'job_type' => $types->random()->id,
-                'job_qualify' => $qualifications->random()->id,
-                'job_level' => $levels->random()->id,
-                'job_experience' => '4',
-                'salary' => '₱90,000 - ₱115,000',
                 'deadline' => $now->copy()->addDays(35),
             ],
         ];
@@ -286,17 +225,20 @@ class JobVacancySeeder extends Seeder
             DB::table('job_vacancies')->insert([
                 'employer_id' => $userId,
                 'title' => $job['title'],
-                'content' => $job['content'],
+                'description' => $job['content'],
+                'qualifications' => $job['content'],
                 'code' => uniqid(),
                 'job_category' => $job['category_id'],
                 'job_sub_category' => json_encode($subCategoryIds),
-                'job_location' => $job['job_location'],
-                'job_type' => $job['job_type'],
-                'job_qualify' => $job['job_qualify'],
-                'job_level' => $job['job_level'],
-                'job_experience' => $job['job_experience'],
-                'available' => 1,
-                'salary' => $job['salary'],
+
+                'job_location' => $workLocation->random()->id,
+                'job_type' => $employmentType->random()->id,
+                'job_qualify' => $education->random()->id,
+                'job_level' => $experienceLevel->random()->id,
+                'job_experience' => $experience->random()->id,
+                'salary' => $faker->randomElement($salaryOptions),
+
+                'available'  => rand(1, 10),
                 'deadline' => $job['deadline'],
                 'is_active' => true,
                 'created_at' => $now,

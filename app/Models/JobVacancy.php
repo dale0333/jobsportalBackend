@@ -13,7 +13,8 @@ class JobVacancy extends Model
     protected $fillable = [
         'employer_id',
         'title',
-        'content',
+        'description',
+        'qualifications',
         'code',
         'job_category',
         'job_sub_category',
@@ -44,7 +45,7 @@ class JobVacancy extends Model
     // attributes
     public function jobDetails($column)
     {
-        return $this->belongsTo(SubCategory::class, $column);
+        return $this->belongsTo(SubAttribute::class, $column);
     }
 
     public function jobLocation()
@@ -66,6 +67,12 @@ class JobVacancy extends Model
     {
         return $this->jobDetails('job_level');
     }
+
+    public function jobExperience()
+    {
+        return $this->jobDetails('job_experience');
+    }
+
 
     // views and ratings
     public function views()
@@ -89,20 +96,9 @@ class JobVacancy extends Model
         return $this->belongsTo(Employer::class);
     }
 
-
-
-
-
-
-
-
-
-
-
-    // ===================================================
     public function jobApplications()
     {
-        return $this->hasMany(JobApplication::class);
+        return $this->hasMany(JobApplication::class, 'job_vacancy_id');
     }
 
     public function applicants()
@@ -110,38 +106,5 @@ class JobVacancy extends Model
         return $this->belongsToMany(JobSeeker::class, 'job_applications')
             ->withTimestamps()
             ->withPivot('status', 'cover_letter');
-    }
-
-
-
-
-    // Scopes
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeExpired($query)
-    {
-        return $query->where('application_deadline', '<', now());
-    }
-
-    public function scopeByIndustry($query, $industry)
-    {
-        return $query->where('industry', $industry);
-    }
-
-    public function scopeByLocation($query, $location)
-    {
-        return $query->where('location', 'like', "%{$location}%");
-    }
-
-    public function scopeWithSkills($query, array $skills)
-    {
-        return $query->where(function ($q) use ($skills) {
-            foreach ($skills as $skill) {
-                $q->orWhereJsonContains('required_skills', $skill);
-            }
-        });
     }
 }

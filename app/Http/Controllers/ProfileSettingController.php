@@ -204,7 +204,7 @@ class ProfileSettingController extends Controller
             $user->avatar_url = $user->avatar ? asset('storage/' . $user->avatar) : null;
             $user->cover_photo_url = $user->cover_photo ? asset('storage/' . $user->cover_photo) : null;
 
-            $user->load(['jobSeeker.experiences', 'employer', 'socialMedias']);
+            $user->load(['jobSeeker.experiences', 'employer', 'socialMedias', 'jobSeekerDocuments']);
 
             AppHelper::userLog($user->id, ucfirst($type) . ' updated successfully.');
 

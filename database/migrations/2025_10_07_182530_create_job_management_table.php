@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('employer_id')->constrained('employers')->onDelete('cascade');
             $table->string('title');
-            $table->text('content');
+            $table->text('description')->nullable();
+            $table->text('qualifications')->nullable();
             $table->string('code');
 
             $table->string('job_sub_category'); // JSON array of sub-category ids
@@ -24,8 +25,8 @@ return new class extends Migration
             $table->integer('job_type');
             $table->integer('job_qualify');
             $table->integer('job_level');
+            $table->integer('job_experience');
 
-            $table->string('job_experience');
             $table->integer('available');
             $table->string('salary')->nullable();
 
@@ -58,9 +59,30 @@ return new class extends Migration
             $table->foreignId('job_seeker_id')->constrained('job_seekers')->onDelete('cascade');
             $table->foreignId('job_vacancy_id')->constrained('job_vacancies')->onDelete('cascade');
             $table->text('cover_letter')->nullable();
-            $table->enum('status', ['pending', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->enum('status', ['pending', 'withdrawn', 'interview', 'rejected', 'hired'])->nullable();
+            $table->enum('type', ['applied', 'matched', 'invited'])->nullable();
             $table->timestamps();
         });
+
+        Schema::create('job_favorites', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('job_id')
+                ->constrained('job_vacancies')
+                ->onDelete('cascade');
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->onDelete('cascade');
+
+            $table->boolean('is_favorite')->default(true);
+
+            $table->softDeletes();
+            $table->timestamps();
+
+            $table->unique(['job_id', 'user_id']);
+        });
+
 
         Schema::create('job_application_transactions', function (Blueprint $table) {
             $table->id();
@@ -68,6 +90,7 @@ return new class extends Migration
             $table->foreignId('process_by')->constrained('users')->onDelete('cascade');
             $table->text('notes')->nullable();
             $table->enum('status', ['pending', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->date('finalized_date')->nullable();
             $table->timestamps();
         });
 
@@ -90,6 +113,7 @@ return new class extends Migration
         Schema::dropIfExists('job_vacancies');
         Schema::dropIfExists('job_views');
         Schema::dropIfExists('job_ratings');
+        Schema::dropIfExists('job_favorites');
         Schema::dropIfExists('job_applications');
         Schema::dropIfExists('attachments');
     }

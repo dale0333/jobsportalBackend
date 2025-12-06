@@ -119,9 +119,9 @@ class JobApplicationController extends Controller
                 });
             }
 
-            if (!empty($status) && $status !== 'all') {
-                $countQuery->where('status', $status);
-            }
+            // if (!empty($status) && $status !== 'all') {
+            //     $countQuery->where('status', $status);
+            // }
 
             /**
              * EXCLUDE "matched" and "invited" types from status counts
@@ -140,6 +140,7 @@ class JobApplicationController extends Controller
              */
             $counts = [
                 'pending'     => $countStatuses['pending'] ?? 0,
+                'processing'  => $countStatuses['processing'] ?? 0,
                 'withdrawn'   => $countStatuses['withdrawn'] ?? 0,
                 'interview'   => $countStatuses['interview'] ?? 0,
                 'rejected'    => $countStatuses['rejected'] ?? 0,

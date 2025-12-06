@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{JobVacancy, Notification, JobApplication, User, Category};
+use App\Models\{JobVacancy, Notification, JobApplication, User, Category, Employer, Reference};
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 use App\Traits\ApiResponseTrait;
 use Barryvdh\DomPDF\Facade\Pdf;
+
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GenericExport;
 
@@ -807,6 +808,85 @@ class DashboardController extends Controller
                         'portrait'
                     );
 
+                case 'FM-CDC-CSRPD-13':
+                    $query = Reference::query();
+
+                    // Filter by date if provided
+                    if (!empty($dateStart) && !empty($dateEnd)) {
+                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+                    }
+
+                    $results = $query->latest()->get();
+
+                    return $this->exportPdf(
+                        $request->user()->name,
+                        $results,
+                        $filters,
+                        'reports.employment-13',
+                        'Employment_Report',
+                        'portrait'
+                    );
+
+                case 'FM-CDC-CSRPD-11':
+                    $query = Reference::query();
+
+                    // Filter by date if provided
+                    if (!empty($dateStart) && !empty($dateEnd)) {
+                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+                    }
+
+                    $results = $query->latest()->get();
+
+                    return $this->exportPdf(
+                        $request->user()->name,
+                        $results,
+                        $filters,
+                        'reports.employment-11',
+                        'Employment_Report',
+                        'portrait'
+                    );
+
+                case 'FM-CDC-CSRPD-12':
+                    $query = Reference::query();
+
+                    // Filter by date if provided
+                    if (!empty($dateStart) && !empty($dateEnd)) {
+                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+                    }
+
+                    $results = $query->latest()->get();
+
+                    return $this->exportPdf(
+                        $request->user()->name,
+                        $results,
+                        $filters,
+                        'reports.employment-12',
+                        'Employment_Report',
+                        'portrait'
+                    );
+
+                case 'employment':
+                    $query = Employer::with([
+                        'user',
+                        'jobVacancies.jobApplications',
+                    ]);
+
+                    // Filter by date if provided
+                    if (!empty($dateStart) && !empty($dateEnd)) {
+                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
+                    }
+
+
+                    $results = $query->latest()->get();
+
+                    return $this->exportPdf(
+                        $request->user()->name,
+                        $results,
+                        $filters,
+                        'reports.employment',
+                        'Employment_Report',
+                        'portrait'
+                    );
 
                     // =================================================================
                     // DEFAULT

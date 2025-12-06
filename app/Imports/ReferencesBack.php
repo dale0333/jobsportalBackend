@@ -43,11 +43,11 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
             // Match Excel column headers exactly
             'tem_res_add'   => $row['temporary_residence_address'] ?? null,
-            'tem_province'  => $row['temporary_province'] ?? null,
-            'tem_mun_brgy'  => $row['temporary_municipality_barangay'] ?? null,
+            'tem_province'  => $row['tem_province'] ?? null,
+            'tem_mun_brgy'  => $row['tem_municipality_barangay'] ?? null,
             'per_res_add'   => $row['permanent_residence_address'] ?? null,
-            'per_province'  => $row['permanent_province'] ?? null,
-            'per_mun_brgy'  => $row['permanent_municipality_barangay'] ?? null,
+            'per_province'  => $row['per_province'] ?? null,
+            'per_mun_brgy'  => $row['per_municipality_barangay'] ?? null,
         ]);
     }
 
@@ -65,11 +65,11 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
             // Excel column names:
             'temporary_residence_address' => 'nullable|string|max:255',
-            'temporary_province' => 'nullable|string|max:255',
-            'temporary_municipality_barangay' => 'nullable|string|max:255',
+            'tem_province' => 'nullable|string|max:255',
+            'tem_municipality_barangay' => 'nullable|string|max:255',
             'permanent_residence_address' => 'nullable|string|max:255',
-            'permanent_province' => 'nullable|string|max:255',
-            'permanent_municipality_barangay' => 'nullable|string|max:255',
+            'per_province' => 'nullable|string|max:255',
+            'per_municipality_barangay' => 'nullable|string|max:255',
         ];
     }
 

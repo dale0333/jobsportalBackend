@@ -9,7 +9,6 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
 
 use App\Imports\ReferencesImport;
-use App\Http\Requests\ImportReferenceRequest;
 use App\Traits\ApiResponseTrait;
 
 class ReferenceController extends Controller
@@ -60,13 +59,13 @@ class ReferenceController extends Controller
             return response()->json(['message' => 'Invalid file type'], 400);
         }
 
-        $filePath = public_path('template/reference_file_template.xlsx');
+        $filePath = public_path('template/reference_file.xlsx');
 
         if (!file_exists($filePath)) {
             return response()->json(['message' => 'File not found'], 404);
         }
 
-        return response()->download($filePath, 'reference_file_template.xlsx');
+        return response()->download($filePath, 'reference_file.xlsx');
     }
 
     public function store(Request $request)
@@ -86,10 +85,10 @@ class ReferenceController extends Controller
 
             // Return statistics about import
             $importStats = [
-                'processed' => $import->getRowCount(),  // total rows processed
-                'success'   => $import->getSuccessCount(), // rows successfully inserted
-                'failed'    => $import->getFailureCount(), // rows failed validation
-                'failures'  => $import->failures(), // detailed failure messages
+                'processed' => $import->getRowCount(),
+                'success'   => $import->getSuccessCount(),
+                'failed'    => $import->getFailureCount(),
+                'failures'  => $import->failures(),
             ];
 
             return response()->json([

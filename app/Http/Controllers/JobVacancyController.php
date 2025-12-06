@@ -45,11 +45,11 @@ class JobVacancyController extends Controller
                     },
                 ]);
 
-            if ($type != 'admin') {
+            if ($type !== 'admin') {
                 $query->where('employer_id', $request->user()->employer->id);
             }
 
-            if ($search) {
+            if (!empty($search)) {
                 $query->where('title', 'like', "%{$search}%");
             }
 
@@ -75,7 +75,7 @@ class JobVacancyController extends Controller
 
             return $this->successResponse($jobs, 'Job created successfully!', 200);
         } catch (\Exception $e) {
-            return $this->errorResponse('Failed to fetch jobs', 500, $e->getMessage());
+            return $this->errorResponse('Failed to fetch jobs' . $e->getMessage(), 500, $e->getMessage());
         }
     }
 

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('qualifications')->nullable();
             $table->string('code');
 
-            $table->string('job_sub_category'); // JSON array of sub-category ids
+            $table->string('job_sub_category');
             $table->integer('job_category');
             $table->integer('job_location');
             $table->integer('job_type');
@@ -59,7 +59,8 @@ return new class extends Migration
             $table->foreignId('job_seeker_id')->constrained('job_seekers')->onDelete('cascade');
             $table->foreignId('job_vacancy_id')->constrained('job_vacancies')->onDelete('cascade');
             $table->text('cover_letter')->nullable();
-            $table->enum('status', ['pending', 'withdrawn', 'interview', 'rejected', 'hired'])->nullable();
+            $table->enum('status', ['pending', 'processing', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->date('finalized_date')->nullable();
             $table->enum('type', ['applied', 'matched', 'invited'])->nullable();
             $table->timestamps();
         });
@@ -89,7 +90,7 @@ return new class extends Migration
             $table->foreignId('job_application_id')->constrained('job_applications')->onDelete('cascade');
             $table->foreignId('process_by')->constrained('users')->onDelete('cascade');
             $table->text('notes')->nullable();
-            $table->enum('status', ['pending', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->enum('status', ['pending', 'processing', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
             $table->date('finalized_date')->nullable();
             $table->timestamps();
         });

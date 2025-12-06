@@ -16,7 +16,8 @@ use App\Http\Controllers\{
     ProfileSettingController,
     DashboardController,
     BulkUploadController,
-    ReferenceController
+    ReferenceController,
+    NotificationController
 };
 
 use App\Http\Controllers\Setting\{
@@ -52,10 +53,13 @@ Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
         Route::post('/generate/reports', [DashboardController::class, 'generateReport']);
 
         // Notifications ===================================================
-        Route::get('/notifications/fetch-all', [DashboardController::class, 'fetchAllNotif']);
-        Route::get('/notifications/fetch-unread', [DashboardController::class, 'fetchUnreadNotif']);
-        Route::post('/notifications/mark-read', [DashboardController::class, 'markAllAsRead']);
+        // Route::get('/notifications/fetch-all', [DashboardController::class, 'fetchAllNotif']);
+        // Route::get('/notifications/fetch-unread', [DashboardController::class, 'fetchUnreadNotif']);
+        // Route::post('/notifications/mark-read', [DashboardController::class, 'markAllAsRead']);
 
+        Route::apiResource('notifications', NotificationController::class);
+        Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 
         Route::apiResource('profile-setting', ProfileSettingController::class);
         Route::apiResource('manage-users', UserController::class);

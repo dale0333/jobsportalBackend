@@ -118,16 +118,39 @@
     </div>
     <!-- HEADER INFORMATION -->
     <table class="header-table">
+        @php
+            use Carbon\Carbon;
+
+            $month = '';
+            $year = '';
+
+            if (!empty($filters['dateRange'])) {
+                $dates = explode(' to ', $filters['dateRange']);
+
+                if (count($dates) === 2) {
+                    $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
+                    $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
+
+                    // Extract month & year from the start date
+                    $month = $dateStart->format('F'); // e.g., October
+                    $year = $dateStart->format('Y'); // e.g., 2025
+                }
+            }
+        @endphp
+
         <tr>
             <td style="width: 30%">MONTH:</td>
-            <td style="width: 45%">October</td>
+            <td style="width: 45%">{{ $month }}</td>
+
             <td>Year:</td>
-            <td>2025</td>
+            <td>{{ $year }}</td>
         </tr>
+
         <tr>
             <td>NAME OF ENTERPRISE:</td>
-            <td colspan="3">GLTEK TRADING CORP.</td>
+            <td colspan="3">{{ auth()->user()->name }}</td>
         </tr>
+
         <tr>
             <td>NAME OF AGENCY / CONTRACTOR:</td>
             <td colspan="3">N/A</td>
@@ -408,10 +431,11 @@
         </div>
         <table style="text-align: center">
             <tr>
-                <td style="width: 25%; padding: 6px; font-size: 14px">DEBORAH GASPAN SASAHARA</td>
-                <td style="width: 25%; padding: 6px; font-size: 14px">CORPORATE SECRETARY</td>
-                <td style="width: 25%; padding: 6px; font-size: 14px">9369795968</td>
-                <td style="width: 25%; padding: 6px; font-size: 14px">October 9, 2025</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">{{ auth()->user()->name }}</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">
+                    {{ ucwords(str_replace('_', ' ', auth()->user()->user_type)) }}</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">{{ auth()->user()->telephone }}</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">{{ now()->format('M d, Y') }}</td>
             </tr>
             <tr>
                 <td tyle="padding: 2px; font-size: 12px">Authorized Representative</td>

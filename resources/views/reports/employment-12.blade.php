@@ -31,7 +31,7 @@
 
         .header-title {
             margin: 0;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             font-size: 18px;
             text-transform: uppercase;
         }
@@ -294,10 +294,11 @@
         </div>
         <table style="text-align: center">
             <tr>
-                <td style="width: 25%; padding: 6px; font-size: 14px">DEBORAH GASPAN SASAHARA</td>
-                <td style="width: 25%; padding: 6px; font-size: 14px">CORPORATE SECRETARY</td>
-                <td style="width: 25%; padding: 6px; font-size: 14px">9369795968</td>
-                <td style="width: 25%; padding: 6px; font-size: 14px">October 9, 2025</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">{{ auth()->user()->name }}</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">
+                    {{ ucwords(str_replace('_', ' ', auth()->user()->user_type)) }}</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">{{ auth()->user()->telephone }}</td>
+                <td style="width: 25%; padding: 6px; font-size: 14px">{{ now()->format('M d, Y') }}</td>
             </tr>
             <tr>
                 <td style="padding: 2px; font-size: 12px">Authorized Representative</td>

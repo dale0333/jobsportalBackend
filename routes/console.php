@@ -7,3 +7,9 @@ Schedule::command('queue:task')
     ->onOneServer()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('queue:deadline')
+    ->daily()
+    ->onOneServer()
+    ->withoutOverlapping()
+    ->runInBackground();

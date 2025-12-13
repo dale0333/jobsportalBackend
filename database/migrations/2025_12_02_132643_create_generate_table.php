@@ -6,16 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('references', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('ref_code')->unique();
+            $table->string('title')->nullable();
+            $table->string('month')->nullable();
+            $table->string('year')->nullable();
+            $table->enum('status', ['active', 'inactive', 'pending'])->default('pending');
+            $table->timestamps();
+        });
+
+        Schema::create('reference_details', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('reference_id')
+                ->constrained('references')
+                ->cascadeOnDelete();
 
             // Personal Information
+            $table->string('company')->nullable();
             $table->string('name')->nullable();
             $table->string('category')->nullable();
             $table->string('position')->nullable();
@@ -36,11 +47,9 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        Schema::dropIfExists('reference_details');
         Schema::dropIfExists('references');
     }
 };

@@ -13,23 +13,20 @@ class Reference extends Model
 
     protected $fillable = [
         'user_id',
-        'name',
-        'category',
-        'position',
-        'nationality',
-        'gender',
-        'domicile',
+        'title',
+        'ref_code',
+        'month',
+        'year',
         'status',
-        'tem_res_add',
-        'tem_province',
-        'tem_mun_brgy',
-        'per_res_add',
-        'per_province',
-        'per_mun_brgy',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function details()
+    {
+        return $this->hasMany(ReferenceDetail::class);
     }
 }

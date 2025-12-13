@@ -6,7 +6,7 @@
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
-            margin: 20px;
+            margin: 0px;
         }
 
         .header {
@@ -51,7 +51,7 @@
         td {
             border: 1px solid #000;
             padding: 3px;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .no-border td {
@@ -118,32 +118,13 @@
     </div>
     <!-- HEADER INFORMATION -->
     <table class="header-table">
-        @php
-            use Carbon\Carbon;
-
-            $month = '';
-            $year = '';
-
-            if (!empty($filters['dateRange'])) {
-                $dates = explode(' to ', $filters['dateRange']);
-
-                if (count($dates) === 2) {
-                    $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
-                    $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
-
-                    // Extract month & year from the start date
-                    $month = $dateStart->format('F'); // e.g., October
-                    $year = $dateStart->format('Y'); // e.g., 2025
-                }
-            }
-        @endphp
 
         <tr>
             <td style="width: 30%">MONTH:</td>
-            <td style="width: 45%">{{ $month }}</td>
+            <td style="width: 45%">{{ $filters['month'] }}</td>
 
             <td>Year:</td>
-            <td>{{ $year }}</td>
+            <td>{{ $filters['year'] }}</td>
         </tr>
 
         <tr>

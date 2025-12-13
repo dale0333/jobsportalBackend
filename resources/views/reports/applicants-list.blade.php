@@ -115,7 +115,7 @@
     <table>
         <tr>
             <td colspan="8" class="position-title">
-                FOR THE POSITION OF: {{ $title ?? '_________________________' }}
+                FOR THE POSITION OF: {{ $title['title'] ?? '_________________________' }}
             </td>
         </tr>
         <thead>
@@ -155,7 +155,7 @@
         <tr>
             <td colspan="8">
                 <p style="margin: 10px 0 0 0; font-size: 10px; font-weight: bold;">Endorsed by:</p>
-                <p style="margin: 10px 0 0 0; font-size: 10px; font-weight: bold;">Skills and Placement Assistant</p>
+                <p style="margin: 10px 0 0 0; font-size: 10px; font-weight: bold;">Skills and Placement Assistant:</p>
             </td>
         </tr>
     </table>
@@ -175,30 +175,30 @@
             <tr>
                 <td>
                     <strong style="display:inline-block; width:35%;">COMPANY NAME:</strong>
-                    <span style="display:inline-block;">____________________________</span>
+                    <span style="display:inline-block;">{{ auth()->user()->name }}</span>
                 </td>
                 <td>
-                    <strong style="display:inline-block; width:35%;">DATE OF REQUEST:</strong>
-                    <span style="display:inline-block;">____________________________</span>
+                    <strong style="display:inline-block; width:40%;">DATE OF REQUEST:</strong>
+                    <span style="display:inline-block;">{{ now()->format('m/d/Y') }}</span>
                 </td>
             </tr>
             <tr>
                 <td>
                     <strong style="display:inline-block; width:35%;">CONTACT NOS.:</strong>
-                    <span style="display:inline-block;">____________________________</span>
+                    <span style="display:inline-block;">{{ auth()->user()->telephone }}</span>
                 </td>
                 <td>
-                    <strong style="display:inline-block; width:35%;">TO BE RETURNED ON:</strong>
-                    <span style="display:inline-block;">____________________________</span>
+                    <strong style="display:inline-block; width:40%;">TO BE RETURNED ON:</strong>
+                    <span style="display:inline-block;">{{ $title['deadline']->format('m/d/Y') }}</span>
                 </td>
             </tr>
             <tr>
                 <td>
                     <strong style="display:inline-block; width:35%;">EMAIL ADD.:</strong>
-                    <span style="display:inline-block;">____________________________</span>
+                    <span style="display:inline-block;">{{ auth()->user()->email }}</span>
                 </td>
                 <td>
-                    <strong style="display:inline-block; width:35%;">DATE RETURNED:</strong>
+                    <strong style="display:inline-block; width:40%;">DATE RETURNED:</strong>
                     <span style="display:inline-block;">____________________________</span>
                 </td>
             </tr>

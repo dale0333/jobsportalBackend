@@ -4,12 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Reference;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Log;
-
-use App\Imports\ReferencesImport;
 use App\Traits\ApiResponseTrait;
+use App\Helpers\AppHelper;
 
 class ReferenceController extends Controller
 {
@@ -19,122 +15,164 @@ class ReferenceController extends Controller
     {
         try {
             $perPage = $request->input('per_page', 10);
-            $search = $request->input('search');
+            $search = $request->input('search', null);
+            $month = $request->input('month', null);
+            $year = $request->input('year', null);
+            $status = $request->input('status', null);
 
-            $query = Reference::with('user')
-                ->where('user_id', $request->user()->id);
+            $user = $request->user();
 
-            // ✅ Properly group search conditions
-            if (!empty($search)) {
+            $query = Reference::query();
+
+            if ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('position', 'like', "%{$search}%")
-                        ->orWhere('category', 'like', "%{$search}%")
+                    $q->where('ref_code', 'like', "%$search%")
                         ->orWhereHas('user', function ($userQuery) use ($search) {
-                            $userQuery->where('name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%");
+                            $userQuery->where('name', 'like', "%$search%")
+                                ->orWhere('email', 'like', "%$search%");
                         });
                 });
             }
 
-            $data = $query->latest()->paginate($perPage);
+            if ($user->user_type === 'employer') {
+                $query->where('user_id', $user->id);
+            }
+
+            if ($month) {
+                $query->where('month', $month);
+            }
+
+            if ($year) {
+                $query->where('year', $year);
+            }
+
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            $data = $query->with('user:id,name,email')->latest()->paginate($perPage);
 
             $data = ([
-                'items'        => $data->items(),
-                'total'        => $data->total(),
-                'per_page'     => $data->perPage(),
+                'items' => $data->items(),
+                'total' => $data->total(),
+                'per_page' => $data->perPage(),
                 'current_page' => $data->currentPage(),
             ]);
 
-            return $this->successResponse($data, 'Fetched data successfully.', 200);
+            return $this->successResponse($data, 'References fetched successfully', 200);
         } catch (\Throwable $th) {
-            Log::error('Reference index error: ' . $th->getMessage());
-            return $this->errorResponse('Failed to fetch references.', 500, $th->getMessage());
+            return $this->errorResponse('Failed to process.', 500, $th->getMessage());
         }
-    }
-
-    public function show($type)
-    {
-        if ($type !== 'template') {
-            return response()->json(['message' => 'Invalid file type'], 400);
-        }
-
-        $filePath = public_path('template/reference_file.xlsx');
-
-        if (!file_exists($filePath)) {
-            return response()->json(['message' => 'File not found'], 404);
-        }
-
-        return response()->download($filePath, 'reference_file.xlsx');
     }
 
     public function store(Request $request)
     {
-        DB::beginTransaction();
-
         try {
-            $user = $request->user();
+            $validated = $request->validate([
+                'title'  => 'required|string',
+                'month'  => 'required|string|max:50',
+                'year'   => 'required|integer',
+                'status' => 'required|in:active,inactive,pending',
+            ]);
 
-            // Initialize import
-            $import = new ReferencesImport($user->id);
+            $userId = $request->user()->id;
 
-            // Import the Excel file
-            Excel::import($import, $request->file('file'));
+            $exists = Reference::where('user_id', $userId)
+                ->where('month', $validated['month'])
+                ->where('year', $validated['year'])
+                ->exists();
 
-            DB::commit();
+            if ($exists) {
+                return $this->errorResponse(
+                    'Reference already exists for this user, month, and year.',
+                    422
+                );
+            }
 
-            // Return statistics about import
-            $importStats = [
-                'processed' => $import->getRowCount(),
-                'success'   => $import->getSuccessCount(),
-                'failed'    => $import->getFailureCount(),
-                'failures'  => $import->failures(),
-            ];
+            $validated['user_id']  = $userId;
+            $validated['ref_code'] = $this->generateUniqueRefCode();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'References imported successfully!',
-                'data'    => $importStats,
-            ], 200);
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            DB::rollBack();
-            $failures = $e->failures();
+            $reference = Reference::create($validated);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed on some rows.',
-                'errors'  => $failures,
-            ], 422);
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Log::error('Reference import error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
+            AppHelper::userLog(
+                $userId,
+                "Created new reference with code '{$reference->ref_code}' (ID: {$reference->id})."
+            );
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to import references.',
-                'errors'  => $th->getMessage(),
-            ], 500);
+            return $this->successResponse(
+                $reference,
+                'Reference created successfully',
+                201
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                'Failed to process.',
+                500,
+                $e->getMessage()
+            );
         }
     }
 
-
-    public function destroy(Request $request, $id)
+    public function show(string $id)
     {
         try {
-            $reference = Reference::where('user_id', $request->user()->id)
-                ->findOrFail($id);
-
-            $reference->delete();
-
-            return $this->successResponse([], 'Reference deleted successfully!', 200);
-        } catch (\Throwable $th) {
-            Log::error('Reference delete error: ' . $th->getMessage());
-
-            return $this->errorResponse(
-                'Failed to delete reference.',
-                500,
-                $th->getMessage()
-            );
+            $data = Reference::with('user:id,name,email')->findOrFail($id);
+            return $this->successResponse($data, 'Reference fetched successfully', 200);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Reference not found.', 404, $e->getMessage());
         }
+    }
+
+    public function update(Request $request, string $id)
+    {
+        try {
+            $data = Reference::findOrFail($id);
+
+            $validated = $request->validate([
+                'title'  => 'sometimes|string',
+                'month'     => 'sometimes|string|max:50',
+                'year'      => 'sometimes|integer',
+                'status'    => 'sometimes|string|in:active,inactive,pending',
+            ]);
+
+            $data->update($validated);
+
+            AppHelper::userLog(
+                $request->user()->id,
+                "Updated reference with code '{$data->ref_code}' (ID: {$id})."
+            );
+
+            return $this->successResponse($data, 'Reference updated successfully', 200);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
+        }
+    }
+
+    public function destroy(Request $request, string $id)
+    {
+        try {
+            $data = Reference::findOrFail($id);
+            $refCode = $data->ref_code;
+
+            $data->delete();
+
+            AppHelper::userLog(
+                $request->user()->id,
+                "Deleted reference with code '{$refCode}' (ID: {$id})."
+            );
+
+            return $this->successResponse(null, 'Reference deleted successfully', 200);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
+        }
+    }
+
+    private function generateUniqueRefCode()
+    {
+        do {
+            $refCode = 'REF-' . strtoupper(uniqid());
+        } while (Reference::where('ref_code', $refCode)->exists());
+
+        return $refCode;
     }
 }

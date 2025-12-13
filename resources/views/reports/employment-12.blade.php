@@ -6,7 +6,6 @@
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
-            margin: 20px;
         }
 
         .header {
@@ -51,7 +50,7 @@
         td {
             border: 1px solid #000;
             padding: 3px;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .no-border td {
@@ -83,7 +82,7 @@
 
         .notes-section {
             margin-top: 15px;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .notes-section ol {
@@ -120,7 +119,7 @@
         <tbody>
             <tr>
                 <td rowspan="2" colspan="2">BREAKDOWN OF EMPLOYEES BY CATEGORY</td>
-                <td colspan="14" class="text-center">LOCAL / FILIPINO EMPLOYEES</td>
+                <td colspan="14" class="text-center">EXPAT / FOREIGN EMPLOYEES</td>
             </tr>
 
             @php

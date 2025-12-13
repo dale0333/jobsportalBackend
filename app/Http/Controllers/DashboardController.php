@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{JobVacancy, Notification, JobApplication, User, Category, Employer, Reference};
+use App\Models\{JobVacancy, ReferenceDetail, Notification, JobApplication, User, Category, Employer, Reference};
 use Carbon\Carbon;
 use App\Traits\ApiResponseTrait;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\GenericExport;
+use App\Exports\{ReferenceDetailsExport, ReferenceEmployerExport};
 
 class DashboardController extends Controller
 {
@@ -167,66 +166,6 @@ class DashboardController extends Controller
 
         return ($part / $total) * 100;
     }
-
-
-    // notifications ===========================================================
-    public function fetchAllNotif(Request $request)
-    {
-
-        try {
-            $perPage = $request->input('per_page', 10);
-            $search = $request->input('search');
-
-            $query = Notification::with('user')->where('user_id',  $request->user()->id);
-
-            // ✅ Properly group search conditions
-            if (!empty($search)) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhere('message', 'like', "%{$search}%");
-                });
-            }
-
-            $data = $query->latest()->paginate($perPage);
-
-            $data = ([
-                'items'        => $data->items(),
-                'total'        => $data->total(),
-                'per_page'     => $data->perPage(),
-                'current_page' => $data->currentPage(),
-            ]);
-
-            return $this->successResponse($data, 'Fetched user logs successfully.', 200);
-        } catch (\Throwable $th) {
-            return $this->errorResponse('Failed to fetch logs.', 500, $th->getMessage());
-        }
-    }
-
-    public function fetchUnreadNotif(Request $request)
-    {
-        $notifications = Notification::where('user_id', $request->user()->id)
-            ->latest()
-            ->take(10)
-            ->get();
-
-        $unreadCount = $notifications->where('is_read', false)->count();
-
-        return response()->json([
-            'success' => true,
-            'data' => $notifications,
-            'unread_count' => $unreadCount,
-        ]);
-    }
-
-    public function markAllAsRead(Request $request)
-    {
-        Notification::where('user_id', $request->user()->id)
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
-
-        return response()->json(['success' => true, 'message' => 'All notifications marked as read.']);
-    }
-
 
     // Analytic 1 =============================================================
     public function getAnalytic1(Request $request)
@@ -685,7 +624,8 @@ class DashboardController extends Controller
     public function generateReport(Request $request)
     {
         try {
-            $filters = $request->only(['dateRange', 'reportType', 'job', 'employer']);
+            $filters = $request->all();
+            $user = $request->user();
 
             // Parse date range
             $dateStart = $dateEnd = null;
@@ -749,6 +689,11 @@ class DashboardController extends Controller
                         $query->whereBetween('created_at', [$dateStart, $dateEnd]);
                     }
 
+                    // Filter by employer if provided
+                    if (!empty($filters['employer'])) {
+                        $query->where('employer_id', $filters['employer']);
+                    }
+
                     // Filter by job vacancy if provided
                     if (!empty($filters['job'])) {
                         $query->where('job_vacancy_id', $filters['job']);
@@ -757,7 +702,7 @@ class DashboardController extends Controller
                     // Determine position title for PDF header
                     if (!empty($filters['job'])) {
                         $jobVacancy = JobVacancy::find($filters['job']);
-                        $positionTitle = $jobVacancy ? $jobVacancy->title : 'No Position';
+                        $positionTitle = $jobVacancy ?  ['title' => $jobVacancy->title, 'deadline' => $jobVacancy->deadline] : 'No Position';
                     } else {
                         $positionTitle = 'Multiple Positions';
                     }
@@ -808,34 +753,25 @@ class DashboardController extends Controller
                         'portrait'
                     );
 
-                case 'FM-CDC-CSRPD-13':
-                    $query = Reference::query();
-
-                    // Filter by date if provided
-                    if (!empty($dateStart) && !empty($dateEnd)) {
-                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
-                    }
-
-                    $results = $query->latest()->get();
-
-                    return $this->exportPdf(
-                        $request->user()->name,
-                        $results,
-                        $filters,
-                        'reports.employment-13',
-                        'Employment_Report',
-                        'portrait'
-                    );
-
                 case 'FM-CDC-CSRPD-11':
-                    $query = Reference::query();
+                    $month = $filters['month'] ?? null;
+                    $year = $filters['year'] ?? null;
 
-                    // Filter by date if provided
-                    if (!empty($dateStart) && !empty($dateEnd)) {
-                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
-                    }
+                    $results = ReferenceDetail::with('reference')
+                        ->whereHas('reference', function ($q) use ($month, $year, $user) {
+                            // Month/year filter on Reference
+                            if (!empty($month) && !empty($year)) {
+                                $q->where('month', $month)
+                                    ->where('year', $year);
+                            }
 
-                    $results = $query->latest()->get();
+                            // Employer filter
+                            if ($user->user_type === 'employer') {
+                                $q->where('user_id', $user->id);
+                            }
+                        })
+                        ->latest()
+                        ->get();
 
                     return $this->exportPdf(
                         $request->user()->name,
@@ -846,15 +782,26 @@ class DashboardController extends Controller
                         'portrait'
                     );
 
+
                 case 'FM-CDC-CSRPD-12':
-                    $query = Reference::query();
+                    $month = $filters['month'] ?? null;
+                    $year = $filters['year'] ?? null;
 
-                    // Filter by date if provided
-                    if (!empty($dateStart) && !empty($dateEnd)) {
-                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
-                    }
+                    $results = ReferenceDetail::with('reference')
+                        ->whereHas('reference', function ($q) use ($month, $year, $user) {
+                            // Month/year filter on Reference
+                            if (!empty($month) && !empty($year)) {
+                                $q->where('month', $month)
+                                    ->where('year', $year);
+                            }
 
-                    $results = $query->latest()->get();
+                            // Employer filter
+                            if ($user->user_type === 'employer') {
+                                $q->where('user_id', $user->id);
+                            }
+                        })
+                        ->latest()
+                        ->get();
 
                     return $this->exportPdf(
                         $request->user()->name,
@@ -865,28 +812,119 @@ class DashboardController extends Controller
                         'portrait'
                     );
 
-                case 'employment':
-                    $query = Employer::with([
-                        'user',
-                        'jobVacancies.jobApplications',
-                    ]);
 
-                    // Filter by date if provided
-                    if (!empty($dateStart) && !empty($dateEnd)) {
-                        $query->whereBetween('created_at', [$dateStart, $dateEnd]);
-                    }
+                case 'FM-CDC-CSRPD-13':
+                    $month = $filters['month'] ?? null;
+                    $year = $filters['year'] ?? null;
 
+                    $results = ReferenceDetail::with('reference')
+                        ->whereHas('reference', function ($q) use ($month, $year, $user) {
+                            // Month/year filter on Reference
+                            if (!empty($month) && !empty($year)) {
+                                $q->where('month', $month)
+                                    ->where('year', $year);
+                            }
 
-                    $results = $query->latest()->get();
+                            // Employer filter
+                            if ($user->user_type === 'employer') {
+                                $q->where('user_id', $user->id);
+                            }
+                        })
+                        ->latest()
+                        ->get();
 
                     return $this->exportPdf(
                         $request->user()->name,
                         $results,
                         $filters,
-                        'reports.employment',
+                        'reports.employment-13',
                         'Employment_Report',
                         'portrait'
                     );
+
+                case 'reference-data':
+                    $month = $filters['month'] ?? null;
+                    $year = $filters['year'] ?? null;
+
+                    $results = ReferenceDetail::with('reference')
+                        ->whereHas('reference', function ($q) use ($month, $year, $user) {
+                            // Month/year filter on Reference
+                            if (!empty($month) && !empty($year)) {
+                                $q->where('month', $month)
+                                    ->where('year', $year);
+                            }
+
+                            // Employer filter
+                            if ($user->user_type === 'employer') {
+                                $q->where('user_id', $user->id);
+                            }
+                        })
+                        ->latest()
+                        ->get();
+
+                    return Excel::download(new ReferenceDetailsExport($results), 'Reference_Details.xlsx');
+
+
+
+                case 'employment':
+                    $month = $filters['month'] ?? null;
+                    $year  = $filters['year'] ?? null;
+
+                    $indirectCategories = [
+                        'Security',
+                        'Janitorial',
+                        'Ground',
+                        'Construction',
+                        'Others'
+                    ];
+
+                    $expatNationalities = [
+                        'AM',
+                        'AUS',
+                        'CAN',
+                        'BRIT',
+                        'IND',
+                        'ISR',
+                        'JAP',
+                        'KOR',
+                        'MAL',
+                        'RUS',
+                        'SING',
+                        'TAI',
+                        'UKR',
+                        'OTHERS'
+                    ];
+
+                    $results = Employer::with(['user', 'references' => function ($q) use ($month, $year) {
+                        if ($month && $year) {
+                            $q->where('month', $month)
+                                ->where('year', $year);
+                        }
+                    }])->get()->map(function ($employer) use ($indirectCategories, $expatNationalities) {
+
+                        $details = $employer->references->pluck('details')->flatten();
+
+                        $indirect = $details->whereIn('category', $indirectCategories)->count();
+                        $direct   = $details->whereNotIn('category', $indirectCategories)->count();
+                        $expat    = $details->whereIn('nationality', $expatNationalities)->count();
+
+                        $total = $direct + $indirect + $expat;
+
+
+                        return [
+                            'loc_no'   => $employer->locator_number,
+                            'company'  => $employer->user->name ?? '',
+                            'industry' => $employer->industry,
+                            'direct'   => $direct,
+                            'indirect' => $indirect,
+                            'expat'    => $expat,
+                            'total'    => $total,
+                            'remarks'  => $total ? '*' : '-',
+                        ];
+                    });
+
+                    return Excel::download(new ReferenceEmployerExport($results), 'Reference_Employer.xlsx');
+
 
                     // =================================================================
                     // DEFAULT

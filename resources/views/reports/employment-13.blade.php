@@ -61,7 +61,7 @@
             border: 1px solid #000;
             padding: 5px;
             vertical-align: top;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         table tbody tr:nth-child(even) {
@@ -113,36 +113,17 @@
 
     </div>
 
-    @php
-        use Carbon\Carbon;
-
-        $month = '';
-        $year = '';
-
-        if (!empty($filters['dateRange'])) {
-            $dates = explode(' to ', $filters['dateRange']);
-
-            if (count($dates) === 2) {
-                $dateStart = Carbon::parse(trim($dates[0]))->startOfDay();
-                $dateEnd = Carbon::parse(trim($dates[1]))->endOfDay();
-
-                // Extract month & year from the start date
-                $month = $dateStart->format('F'); // e.g., October
-                $year = $dateStart->format('Y'); // e.g., 2025
-            }
-        }
-    @endphp
-
     <!-- DETAILS TABLE (no borders) -->
     <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <tbody>
             <tr>
-                <td style="border: none; padding: 4px;"><strong>Period / Month:</strong></td>
-                <td style="border: none; padding: 4px;">{{ $month . ' ' . $year }} </td>
+                <td style="border: none; padding: 4px; font-size: 12px"><strong>Period / Month:</strong></td>
+                <td style="border: none; padding: 4px; font-size: 12px">{{ $filters['month'] . ' ' . $filters['year'] }}
+                </td>
             </tr>
             <tr style="background: #fff;">
-                <td style="border: none; padding: 4px;"><strong>Name of CFZ Enterprise:</strong></td>
-                <td style="border: none; padding: 4px;">{{ auth()->user()->name }}</td>
+                <td style="border: none; padding: 4px; font-size: 12px"><strong>Name of CFZ Enterprise:</strong></td>
+                <td style="border: none; padding: 4px; font-size: 12px">{{ auth()->user()->name }}</td>
             </tr>
         </tbody>
     </table>

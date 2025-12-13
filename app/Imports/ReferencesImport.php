@@ -2,7 +2,7 @@
 
 namespace App\Imports;
 
-use App\Models\Reference;
+use App\Models\ReferanceDetail;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -15,13 +15,13 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
 {
     use SkipsErrors, SkipsFailures;
 
-    private $userId;
+    private $referenceId;
     private $rowCount = 0;
     private $successCount = 0;
 
-    public function __construct($userId)
+    public function __construct($referenceId)
     {
-        $this->userId = $userId;
+        $this->referenceId = $referenceId;
     }
 
     public function model(array $row)
@@ -31,8 +31,9 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
         // If row failed validation, it won't reach here
         $this->successCount++;
 
-        return new Reference([
-            'user_id' => $this->userId,
+        return new ReferanceDetail([
+            'reference_id' => $this->referenceId,
+            'company' => $row['company_name'] ?? null,
             'name' => $row['name'] ?? null,
             'category' => $row['category'] ?? null,
             'position' => $row['position'] ?? null,
@@ -55,6 +56,7 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
     {
         // Rules MUST match Excel column headers, not database fields
         return [
+            'company' => 'nullable|max:255',
             'name' => 'required|max:255',
             'category' => 'required|max:255',
             'position' => 'required|max:255',

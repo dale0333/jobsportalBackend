@@ -17,6 +17,7 @@ use App\Http\Controllers\{
     DashboardController,
     BulkUploadController,
     ReferenceController,
+    ReferenceDetailController,
     NotificationController
 };
 
@@ -53,10 +54,6 @@ Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
         Route::post('/generate/reports', [DashboardController::class, 'generateReport']);
 
         // Notifications ===================================================
-        // Route::get('/notifications/fetch-all', [DashboardController::class, 'fetchAllNotif']);
-        // Route::get('/notifications/fetch-unread', [DashboardController::class, 'fetchUnreadNotif']);
-        // Route::post('/notifications/mark-read', [DashboardController::class, 'markAllAsRead']);
-
         Route::apiResource('notifications', NotificationController::class);
         Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
         Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
@@ -71,7 +68,8 @@ Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
         Route::apiResource('seeker-applications', SeekerAppController::class);
         Route::apiResource('seeker-documents', SeekerDocumentController::class);
 
-        Route::apiResource('employer-references', ReferenceController::class);
+        Route::apiResource('user-references', ReferenceController::class);
+        Route::apiResource('references-details', ReferenceDetailController::class);
 
         // Settings
         Route::apiResource('setting-email-smtp', EmailController::class);

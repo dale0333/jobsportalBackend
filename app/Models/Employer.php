@@ -42,4 +42,9 @@ class Employer extends Model
     {
         return $query->where('industry', $industry);
     }
+
+    public function references()
+    {
+        return $this->hasMany(Reference::class, 'user_id', 'user_id');
+    }
 }

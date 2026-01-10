@@ -34,7 +34,7 @@ class ReferenceController extends Controller
                 });
             }
 
-            if ($user->user_type === 'employer') {
+            if ($user->user_type === 'employer' || $user->user_type === 'manpower_agency') {
                 $query->where('user_id', $user->id);
             }
 

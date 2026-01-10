@@ -2,7 +2,7 @@
 
 namespace App\Imports;
 
-use App\Models\ReferanceDetail;
+use App\Models\ReferenceDetail;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -31,7 +31,7 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
         // If row failed validation, it won't reach here
         $this->successCount++;
 
-        return new ReferanceDetail([
+        return new ReferenceDetail([
             'reference_id' => $this->referenceId,
             'company' => $row['company_name'] ?? null,
             'name' => $row['name'] ?? null,

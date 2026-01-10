@@ -118,6 +118,8 @@ class ReferenceDetailController extends Controller
             DB::rollBack();
             $failures = $e->failures();
 
+            Log::error('Reference import validation error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed on some rows.',

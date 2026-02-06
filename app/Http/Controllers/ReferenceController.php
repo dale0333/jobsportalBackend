@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Reference;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+
 use App\Helpers\AppHelper;
+use App\Imports\ReferencesImport;
 
 class ReferenceController extends Controller
 {
@@ -22,7 +26,7 @@ class ReferenceController extends Controller
 
             $user = $request->user();
 
-            $query = Reference::query();
+            $query = Reference::with('details');
 
             if ($search) {
                 $query->where(function ($q) use ($search) {
@@ -65,54 +69,6 @@ class ReferenceController extends Controller
         }
     }
 
-    public function store(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'title'  => 'required|string',
-                'month'  => 'required|string|max:50',
-                'year'   => 'required|integer',
-                'status' => 'required|in:active,inactive,pending',
-            ]);
-
-            $userId = $request->user()->id;
-
-            $exists = Reference::where('user_id', $userId)
-                ->where('month', $validated['month'])
-                ->where('year', $validated['year'])
-                ->exists();
-
-            if ($exists) {
-                return $this->errorResponse(
-                    'Reference already exists for this user, month, and year.',
-                    422
-                );
-            }
-
-            $validated['user_id']  = $userId;
-            $validated['ref_code'] = $this->generateUniqueRefCode();
-
-            $reference = Reference::create($validated);
-
-            AppHelper::userLog(
-                $userId,
-                "Created new reference with code '{$reference->ref_code}' (ID: {$reference->id})."
-            );
-
-            return $this->successResponse(
-                $reference,
-                'Reference created successfully',
-                201
-            );
-        } catch (\Exception $e) {
-            return $this->errorResponse(
-                'Failed to process.',
-                500,
-                $e->getMessage()
-            );
-        }
-    }
-
     public function show(string $id)
     {
         try {
@@ -123,28 +79,124 @@ class ReferenceController extends Controller
         }
     }
 
+    public function store(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string',
+                'month' => 'required|string|max:50',
+                'year'  => 'required|integer',
+                'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            ]);
+
+            $userId = $request->user()->id;
+
+            $exists = Reference::where('user_id', $userId)
+                ->where('month', $validated['month'])
+                ->where('year', $validated['year'])
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Reference already exists for this month and year.',
+                ], 422);
+            }
+
+            $reference = Reference::create([
+                'user_id'  => $userId,
+                'title'    => $validated['title'],
+                'month'    => $validated['month'],
+                'year'     => $validated['year'],
+                'ref_code' => $this->generateUniqueRefCode(),
+            ]);
+
+            $import = new ReferencesImport($reference->id);
+            Excel::import($import, $request->file('file'));
+
+            DB::commit();
+
+            AppHelper::userLog(
+                $userId,
+                "Created reference '{$reference->ref_code}' (ID: {$reference->id})"
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'References imported successfully!',
+                'data' => [
+                    'processed' => $import->getRowCount(),
+                    'success'   => $import->getSuccessCount(),
+                    'failed'    => $import->getFailureCount(),
+                    'failures'  => $import->failures(),
+                ],
+            ], 200);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed on some rows.',
+                'errors'  => $e->failures(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to import references.',
+                'errors'  => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function update(Request $request, string $id)
     {
         try {
-            $data = Reference::findOrFail($id);
+            $reference = Reference::findOrFail($id);
 
             $validated = $request->validate([
                 'title'  => 'sometimes|string',
-                'month'     => 'sometimes|string|max:50',
-                'year'      => 'sometimes|integer',
-                'status'    => 'sometimes|string|in:active,inactive,pending',
+                'month'  => 'sometimes|string|max:50',
+                'year'   => 'sometimes|integer',
             ]);
 
-            $data->update($validated);
+            $month = $validated['month'] ?? $reference->month;
+            $year  = $validated['year'] ?? $reference->year;
+
+            $exists = Reference::where('user_id', $request->user()->id)
+                ->where('month', $month)
+                ->where('year', $year)
+                ->where('id', '!=', $reference->id)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Reference already exists for this month and year.',
+                ], 422);
+            }
+
+            $reference->update($validated);
 
             AppHelper::userLog(
                 $request->user()->id,
-                "Updated reference with code '{$data->ref_code}' (ID: {$id})."
+                "Updated reference '{$reference->ref_code}' (ID: {$reference->id})"
             );
 
-            return $this->successResponse($data, 'Reference updated successfully', 200);
-        } catch (\Exception $e) {
-            return $this->errorResponse('Failed to process.', 500, $e->getMessage());
+            return response()->json([
+                'success' => true,
+                'message' => 'Reference updated successfully.',
+                'data'    => $reference,
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update reference.',
+                'errors'  => $e->getMessage(),
+            ], 500);
         }
     }
 

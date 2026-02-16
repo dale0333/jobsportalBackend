@@ -204,9 +204,13 @@ class UserController extends Controller
                 'telephone' => 'nullable|string|max:20',
                 'address' => 'nullable|string|max:500',
                 'bio' => 'nullable|string|max:1000',
-                'company_size' => 'nullable|required_if:user_type,employer|string|max:50',
-                'industry' => 'nullable|required_if:user_type,employer|string|max:255',
                 'locator_number' => 'nullable|string|max:100',
+
+                'company_size' => 'nullable|required_if:user_type,employer|string|max:50',
+                'contact_person' => 'nullable|required_if:user_type,employer|string|max:255',
+                'position' => 'nullable|required_if:user_type,employer|string|max:255',
+                'industry' => 'nullable|required_if:user_type,employer|string|max:255',
+                'sub_industry' => 'nullable|required_if:user_type,employer|string|max:255',
             ]);
 
             DB::beginTransaction();
@@ -231,8 +235,11 @@ class UserController extends Controller
             if ($validated['user_type'] === 'employer') {
                 $user->employer->update([
                     'company_size' => $validated['company_size'],
-                    'industry' => $validated['industry'],
                     'locator_number' => $validated['locator_number'],
+                    'industry' => $validated['industry'],
+                    'contact_person' => $validated['contact_person'],
+                    'position' => $validated['position'],
+                    'sub_industry' => $validated['sub_industry'],
                 ]);
             }
 

@@ -17,11 +17,11 @@ class AdminUserSeeder extends Seeder
         $faker = Faker::create();
 
         // ==================== ADMIN ====================
-        if (DB::table('users')->where('email', 'admin@test.com')->doesntExist()) {
+        if (DB::table('users')->where('email', 'admin@cdc.gov.ph')->doesntExist()) {
             DB::table('users')->insert([
                 'user_type' => 'admin',
                 'name' => 'System Administrator',
-                'email' => 'admin@test.com',
+                'email' => 'admin@cdc.gov.ph',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password123'),
                 'address' => 'Clark Freeport Zone, Pampanga, Philippines',
@@ -31,7 +31,7 @@ class AdminUserSeeder extends Seeder
                 'updated_at' => now(),
             ]);
 
-            $this->command->info('✅ Admin user created: admin@test.com / password123');
+            $this->command->info('✅ Admin user created: admin@cdc.gov.ph / password123');
         } else {
             $this->command->info('ℹ️ Admin user already exists.');
         }

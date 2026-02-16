@@ -12,9 +12,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminUserSeeder::class,
-            AllUsersSeeder::class,
             JobConfigSeeder::class,
-            JobVacancySeeder::class
+            // JobVacancySeeder::class,
+            // AllUsersSeeder::class,
+            LocatorSeeder::class
         ]);
     }
 }

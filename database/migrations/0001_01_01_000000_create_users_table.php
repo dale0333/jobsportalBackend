@@ -53,9 +53,12 @@ return new class extends Migration
         Schema::create('employers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('contact_person')->nullable();
+            $table->string('position')->nullable();
             $table->string('company_size')->nullable();
-            $table->string('industry')->nullable();
             $table->string('locator_number')->nullable();
+            $table->string('industry')->nullable();
+            $table->string('sub_industry')->nullable();
             $table->timestamps();
         });
 

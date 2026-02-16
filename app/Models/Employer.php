@@ -10,10 +10,12 @@ class Employer extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'contact_person',
+        'position',
         'company_size',
+        'locator_number',
         'industry',
-        'locator_number'
+        'sub_industry',
     ];
 
     // Relationships

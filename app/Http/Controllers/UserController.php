@@ -125,7 +125,12 @@ class UserController extends Controller
                 'bio' => 'nullable|string|max:1000',
                 'company_size' => 'nullable|required_if:user_type,employer|string|max:50',
                 'industry' => 'nullable|required_if:user_type,employer|string|max:255',
-                'locator_number' => 'nullable|string|max:100',
+
+                'company_size' => 'nullable|required_if:user_type,employer|string|max:50',
+                'contact_person' => 'nullable|required_if:user_type,employer|string|max:255',
+                'position' => 'nullable|required_if:user_type,employer|string|max:255',
+                'industry' => 'nullable|required_if:user_type,employer|string|max:255',
+                'sub_industry' => 'nullable|required_if:user_type,employer|string|max:255',
             ]);
 
             // Start database transaction

@@ -69,9 +69,9 @@ class ReferenceDetailController extends Controller
         }
 
         if ($request->user()->user_type === 'employer') {
-            $filePath = public_path('template/reference_employer.xlsx');
+            $filePath = public_path('template/reference_emp.xlsx');
         } else {
-            $filePath = public_path('template/reference_file.xlsx');
+            $filePath = public_path('template/reference_man.xlsx');
         }
 
         if (!file_exists($filePath)) {
@@ -84,7 +84,7 @@ class ReferenceDetailController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:2048',
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
             'code' => 'required|string|exists:references,ref_code',
         ]);
 
@@ -94,7 +94,7 @@ class ReferenceDetailController extends Controller
             $reference = Reference::where('ref_code', $request->input('code'))->first();
 
             // Initialize import
-            $import = new ReferencesImport($reference->id);
+            $import = new ReferencesImport($request->user(), $reference->id);
 
             // Import the Excel file
             Excel::import($import, $request->file('file'));

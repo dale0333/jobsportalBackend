@@ -18,9 +18,11 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
     private $referenceId;
     private $rowCount = 0;
     private $successCount = 0;
+    private $user;
 
-    public function __construct($referenceId)
+    public function __construct($user, $referenceId)
     {
+        $this->user = $user;
         $this->referenceId = $referenceId;
     }
 
@@ -28,12 +30,17 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
     {
         $this->rowCount++;
 
-        // If row failed validation, it won't reach here
+        if ($this->user->user_type === 'employer') {
+            $companyName = $this->user->name;
+        } else {
+            $companyName = $row['company_name'] ?? null;
+        }
+
         $this->successCount++;
 
         return new ReferenceDetail([
             'reference_id' => $this->referenceId,
-            'company' => $row['company_name'] ?? null,
+            'company' => $companyName,
             'name' => $row['name'] ?? null,
             'category' => $row['category'] ?? null,
             'position' => $row['position'] ?? null,
@@ -42,13 +49,12 @@ class ReferencesImport implements ToModel, WithHeadingRow, WithValidation, Skips
             'domicile' => $row['domicile'] ?? null,
             'status' => $row['status'] ?? null,
 
-            // Match Excel column headers exactly
-            'tem_res_add'   => $row['temporary_residence_address'] ?? null,
-            'tem_province'  => $row['tem_province'] ?? null,
-            'tem_mun_brgy'  => $row['tem_municipality_barangay'] ?? null,
-            'per_res_add'   => $row['permanent_residence_address'] ?? null,
-            'per_province'  => $row['per_province'] ?? null,
-            'per_mun_brgy'  => $row['per_municipality_barangay'] ?? null,
+            'tem_res_add'  => $row['temporary_residence_address'] ?? null,
+            'tem_province' => $row['tem_province'] ?? null,
+            'tem_mun_brgy' => $row['tem_municipality_barangay'] ?? null,
+            'per_res_add'  => $row['permanent_residence_address'] ?? null,
+            'per_province' => $row['per_province'] ?? null,
+            'per_mun_brgy' => $row['per_municipality_barangay'] ?? null,
         ]);
     }
 

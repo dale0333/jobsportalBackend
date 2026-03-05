@@ -88,12 +88,12 @@ class ReferenceController extends Controller
                 'title' => 'required|string',
                 'month' => 'required|string|max:50',
                 'year'  => 'required|integer',
-                'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+                'file'  => 'nullable|max:10240',
             ]);
 
-            $userId = $request->user()->id;
+            $user = $request->user();
 
-            $exists = Reference::where('user_id', $userId)
+            $exists = Reference::where('user_id', $user->id)
                 ->where('month', $validated['month'])
                 ->where('year', $validated['year'])
                 ->exists();
@@ -106,32 +106,41 @@ class ReferenceController extends Controller
             }
 
             $reference = Reference::create([
-                'user_id'  => $userId,
+                'user_id'  => $user->id,
                 'title'    => $validated['title'],
                 'month'    => $validated['month'],
                 'year'     => $validated['year'],
                 'ref_code' => $this->generateUniqueRefCode(),
             ]);
 
-            $import = new ReferencesImport($reference->id);
-            Excel::import($import, $request->file('file'));
+            $import = null;
+            $importData = null;
+
+            if ($request->hasFile('file')) {
+                $import = new ReferencesImport($user, $reference->id);
+                Excel::import($import, $request->file('file'));
+
+                $importData = [
+                    'processed' => $import->getRowCount(),
+                    'success'   => $import->getSuccessCount(),
+                    'failed'    => $import->getFailureCount(),
+                    'failures'  => $import->failures(),
+                ];
+            }
 
             DB::commit();
 
             AppHelper::userLog(
-                $userId,
+                $user->id,
                 "Created reference '{$reference->ref_code}' (ID: {$reference->id})"
             );
 
             return response()->json([
                 'success' => true,
-                'message' => 'References imported successfully!',
-                'data' => [
-                    'processed' => $import->getRowCount(),
-                    'success'   => $import->getSuccessCount(),
-                    'failed'    => $import->getFailureCount(),
-                    'failures'  => $import->failures(),
-                ],
+                'message' => $request->hasFile('file')
+                    ? 'References imported successfully!'
+                    : 'Reference created successfully.',
+                'data' => $importData,
             ], 200);
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             DB::rollBack();

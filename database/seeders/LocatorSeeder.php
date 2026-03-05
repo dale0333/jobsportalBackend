@@ -12,7 +12,7 @@ class LocatorSeeder extends Seeder
     {
         Excel::import(
             new LocatorImport(),
-            database_path('seeders/data/locators.xlsx')
+            database_path('seeders/data/locators_1_fixed.xlsx')
         );
     }
 }

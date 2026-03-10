@@ -60,6 +60,7 @@ return new class extends Migration
             $table->foreignId('job_vacancy_id')->constrained('job_vacancies')->onDelete('cascade');
             $table->text('cover_letter')->nullable();
             $table->enum('status', ['pending', 'processing', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->enum('interview_status', ['withdrawn', 'accepted', 'rescheduled'])->nullable();
             $table->date('finalized_date')->nullable();
             $table->enum('type', ['applied', 'matched', 'invited'])->nullable();
             $table->timestamps();
@@ -84,13 +85,12 @@ return new class extends Migration
             $table->unique(['job_id', 'user_id']);
         });
 
-
         Schema::create('job_application_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('job_application_id')->constrained('job_applications')->onDelete('cascade');
             $table->foreignId('process_by')->constrained('users')->onDelete('cascade');
             $table->text('notes')->nullable();
-            $table->enum('status', ['pending', 'processing', 'withdrawn', 'interview', 'rejected', 'hired'])->default('pending');
+            $table->text('status')->default('pending');
             $table->date('finalized_date')->nullable();
             $table->timestamps();
         });

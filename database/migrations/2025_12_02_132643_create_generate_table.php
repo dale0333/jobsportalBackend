@@ -11,16 +11,25 @@ return new class extends Migration
         Schema::create('references', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+
             $table->string('ref_code')->unique();
             $table->string('title')->nullable();
-            $table->string('month')->nullable();
-            $table->string('year')->nullable();
+
+            // Better data types
+            $table->unsignedTinyInteger('month')->nullable();
+            $table->unsignedSmallInteger('year')->nullable();
+
             $table->enum('status', ['active', 'inactive', 'pending'])->default('pending');
+
             $table->timestamps();
+
+            // Index for faster report filtering
+            $table->index(['user_id', 'month', 'year']);
         });
 
         Schema::create('reference_details', function (Blueprint $table) {
             $table->id();
+
             $table->foreignId('reference_id')
                 ->constrained('references')
                 ->cascadeOnDelete();
@@ -35,11 +44,13 @@ return new class extends Migration
             $table->string('domicile')->nullable();
             $table->string('status')->nullable();
 
-            $table->string('tem_res_add')->nullable();
+            // Temporary Address
+            $table->text('tem_res_add')->nullable();
             $table->string('tem_province')->nullable();
             $table->string('tem_mun_brgy')->nullable();
 
-            $table->string('per_res_add')->nullable();
+            // Permanent Address
+            $table->text('per_res_add')->nullable();
             $table->string('per_province')->nullable();
             $table->string('per_mun_brgy')->nullable();
 

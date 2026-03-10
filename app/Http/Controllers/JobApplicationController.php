@@ -33,7 +33,7 @@ class JobApplicationController extends Controller
                 'jobSeeker.user',
                 'jobVacancy',
                 'attachments',
-                'jobApplicationTransactions'
+                'jobApplicationTransactions.processedBy'
             ]);
 
             // Filter: Job Code
@@ -169,6 +169,7 @@ class JobApplicationController extends Controller
             'job_application_id' => 'required|exists:job_applications,id',
             'status'             => 'required|string',
             'notes'              => 'required|string',
+            'finalized_date'     => 'nullable|string',
         ]);
 
         try {
@@ -187,6 +188,7 @@ class JobApplicationController extends Controller
             $application->update([
                 'status' => $validated['status'],
                 'type'   => 'applied',
+                'finalized_date' => $validated['finalized_date'] ?? null,
             ]);
 
             // ✅ Create a transaction record

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
 use App\Models\{JobApplication};
-use Illuminate\Support\Facades\DB;
 
 use App\Helpers\AppHelper;
 use App\Jobs\SendApplicationStatusNotification;
@@ -92,15 +91,65 @@ class SeekerAppController extends Controller
         }
     }
 
+
+    // public function update($id, Request $request)
+    // {
+    //     try {
+    //         $user = $request->user();
+
+    //         $application = JobApplication::with([
+    //             'jobSeeker.user',
+    //             'jobVacancy.employer.user'
+    //         ])->where('job_seeker_id', $user->jobSeeker->id)
+    //             ->where('id', $id)
+    //             ->first();
+
+    //         if (!$application) {
+    //             return $this->errorResponse('Job application not found.', 404);
+    //         }
+
+    //         // Update application status to withdrawn
+    //         $application->update([
+    //             'status' => 'withdrawn',
+    //         ]);
+
+    //         // Create a transaction record
+    //         $application->jobApplicationTransactions()->create([
+    //             'process_by' => $user->id,
+    //             'notes' => 'Application withdrawn by job seeker',
+    //             'status' => 'withdrawn',
+    //         ]);
+
+    //         // ✅ Send notifications to both employer and job seeker
+    //         $this->storeWithdrawalNotification($application);
+
+    //         // ✅ Activity log
+    //         AppHelper::userLog(
+    //             $user->id,
+    //             "Withdrawn Job Application '{$application->id}'"
+    //         );
+
+    //         return $this->successResponse(null, 'Job application withdrawn successfully!');
+    //     } catch (\Exception $e) {
+    //         return $this->errorResponse('Failed to withdraw job application.', 500, $e->getMessage());
+    //     }
+    // }
+
     public function update($id, Request $request)
     {
         try {
             $user = $request->user();
 
+            $request->validate([
+                'type'  => 'required|in:accepted,rescheduled,withdrawn,other',
+                'notes' => 'nullable|string|max:1000',
+            ]);
+
             $application = JobApplication::with([
                 'jobSeeker.user',
                 'jobVacancy.employer.user'
-            ])->where('job_seeker_id', $user->jobSeeker->id)
+            ])
+                ->where('job_seeker_id', $user->jobSeeker->id)
                 ->where('id', $id)
                 ->first();
 
@@ -108,103 +157,108 @@ class SeekerAppController extends Controller
                 return $this->errorResponse('Job application not found.', 404);
             }
 
-            // Update application status to withdrawn
-            $application->update([
-                'status' => 'withdrawn',
-            ]);
+            if ($application->status === 'interview' && $request->type == 'accepted') {
+                $application->update([
+                    'interview_status' => true,
+                ]);
+            }
 
-            // Create a transaction record
+            // ✅ Store transaction history
             $application->jobApplicationTransactions()->create([
                 'process_by' => $user->id,
-                'notes' => 'Application withdrawn by job seeker',
-                'status' => 'withdrawn',
+                'notes'      => $request->notes ?? "Application {$request->type} by job seeker",
+                'status'     => $request->type,
             ]);
 
-            // ✅ Send notifications to both employer and job seeker
-            $this->storeWithdrawalNotification($application);
+            // ✅ Send notification
+            $this->storeUpdateNotification($application, $request->type);
 
             // ✅ Activity log
             AppHelper::userLog(
                 $user->id,
-                "Withdrawn Job Application '{$application->id}'"
+                ucfirst($request->type) . " Job Application '{$application->id}'"
             );
 
-            return $this->successResponse(null, 'Job application withdrawn successfully!');
+            return $this->successResponse(
+                $application,
+                "Application {$request->type} successfully!"
+            );
         } catch (\Exception $e) {
-            return $this->errorResponse('Failed to withdraw job application.', 500, $e->getMessage());
+            return $this->errorResponse(
+                'Failed to process application.',
+                500,
+                $e->getMessage()
+            );
         }
     }
 
-    // Private method for withdrawal notifications
-    private function storeWithdrawalNotification($application)
+    // Private method for update notifications
+    private function storeUpdateNotification($application, $type)
     {
         $jobSeekerUser = $application->jobSeeker->user ?? null;
         $employerUser = $application->jobVacancy->employer->user ?? null;
 
         $jobTitle = $application->jobVacancy->title ?? 'Unknown Job';
-        $companyName = $application->jobVacancy->employer->user->company_name ?? 'Unknown Company';
+        $companyName = $application->jobVacancy->employer->user->name ?? 'Unknown Company';
         $applicantName = $jobSeekerUser->name ?? 'Unknown Applicant';
 
-        // -----------------------------------------
-        // Employer notification (System)
-        // -----------------------------------------
-        if ($employerUser) {
-            $employerTitle = "Application Withdrawn";
-            $employerMessage = "{$applicantName} has withdrawn their application for '{$jobTitle}'";
+        $title = "Application Update";
+        $statusLabel = ucfirst($type);
 
-            // System notification for employer
+        // ------------------------------
+        // Employer notification
+        // ------------------------------
+        if ($employerUser) {
+
+            $message = "{$applicantName} marked their application as {$statusLabel} for '{$jobTitle}'";
+
             AppHelper::storedNotification(
                 $employerUser,
-                'application_withdrawn',
-                $employerTitle,
-                $employerMessage,
+                'application_update',
+                $title,
+                $message,
                 [
                     'job_vacancy' => $jobTitle,
                     'application_code' => $application->jobVacancy->code ?? 'N/A',
                     'applicant_name' => $applicantName,
-                    'status' => 'withdrawn',
-                    'withdrawn_at' => now()->toDateTimeString(),
-                    'application_id' => $application->id,
+                    'status' => $type,
+                    'updated_at' => now()->toDateTimeString(),
                 ]
             );
         }
 
-        // -----------------------------------------
-        // Job Seeker notification (System + Email)
-        // -----------------------------------------
+        // ------------------------------
+        // Job Seeker notification
+        // ------------------------------
         if ($jobSeekerUser) {
-            $seekerTitle = "Application Withdrawn";
-            $seekerMessage = "You have successfully withdrawn your application for '{$jobTitle}' at {$companyName}";
 
-            // System notification for job seeker
+            $message = "Your application for '{$jobTitle}' at {$companyName} was marked as {$statusLabel}.";
+
             AppHelper::systemNotificaiton(
                 $jobSeekerUser,
-                'application_withdrawn',
-                $seekerTitle,
-                $seekerMessage,
+                'application_update',
+                $title,
+                $message,
                 [
                     'job_title' => $jobTitle,
                     'company_name' => $companyName,
-                    'status' => 'withdrawn',
-                    'withdrawn_at' => now()->toDateTimeString(),
-                    'application_id' => $application->id,
-                    'action_type' => 'withdrawn',
+                    'status' => $type,
+                    'updated_at' => now()->toDateTimeString(),
+                    'action_type' => $type,
                 ]
             );
 
-            // Email notification for job seeker
             SendApplicationStatusNotification::dispatch(
                 $jobSeekerUser,
-                'application_withdrawn',
-                $seekerTitle,
-                $seekerMessage,
+                'application_update',
+                $title,
+                $message,
                 [
                     'job_title' => $jobTitle,
                     'company_name' => $companyName,
-                    'status' => 'withdrawn',
-                    'withdrawn_at' => now()->toDateTimeString(),
-                    'application_id' => $application->id,
-                    'action_type' => 'withdrawn',
+                    'status' => $type,
+                    'updated_at' => now()->toDateTimeString(),
+                    'action_type' => $type,
                 ]
             );
         }

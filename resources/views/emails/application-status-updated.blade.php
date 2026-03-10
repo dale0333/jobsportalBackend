@@ -353,14 +353,29 @@
 
             <!-- Message Content -->
             <div class="message-box">
+                @php
+                    $statusLabels = [
+                        'pending' => 'Application Received',
+                        'processing' => 'Under Review',
+                        'interview' => 'Interview Scheduled',
+                        'accepted' => 'Interview Accepted',
+                        'rescheduled' => 'Interview Rescheduled',
+                        'rejected' => 'Not Qualified',
+                        'withdrawn' => 'Application Withdrawn',
+                        'hired' => 'Congratulations! You are Hired',
+                        'other' => 'Application Updated',
+                    ];
+
+                    $statusText = $statusLabels[$data['status']] ?? ucfirst($data['status']);
+                @endphp
+
                 <div style="font-size: 18px; color: #1e293b; margin-bottom: 15px;">
                     {!! nl2br(e($content)) !!}
                 </div>
 
-                <!-- Status Badge -->
                 @if (isset($data['status']))
                     <div class="status-badge status-{{ $data['status'] }}">
-                        Status: {{ ucfirst($data['status']) }}
+                        Status: {{ $statusText }}
                     </div>
                 @endif
             </div>

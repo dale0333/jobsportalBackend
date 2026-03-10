@@ -123,8 +123,6 @@ class UserController extends Controller
                 'telephone' => 'nullable|string|max:20',
                 'address' => 'nullable|string|max:500',
                 'bio' => 'nullable|string|max:1000',
-                'company_size' => 'nullable|required_if:user_type,employer|string|max:50',
-                'industry' => 'nullable|required_if:user_type,employer|string|max:255',
 
                 'company_size' => 'nullable|required_if:user_type,employer|string|max:50',
                 'contact_person' => 'nullable|required_if:user_type,employer|string|max:255',

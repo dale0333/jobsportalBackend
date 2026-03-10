@@ -67,7 +67,7 @@ class ReferenceEmployerExport implements FromArray, WithHeadings, WithStyles, Wi
                     $format($item['indirect']),
                     $format($item['expat']),
                     $format($item['total']),
-                    '*',
+                    $item['remarks']
                 ];
 
                 $industryTotals['direct'] += $item['direct'] ?: 0;

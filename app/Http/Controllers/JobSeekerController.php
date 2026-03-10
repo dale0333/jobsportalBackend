@@ -261,13 +261,17 @@ class JobSeekerController extends Controller
             $user = $request->user();
 
             // ✅ Create job application
-            $application = JobApplication::create([
-                'job_vacancy_id' => $request->job_id,
-                'job_seeker_id'  => $user->jobSeeker?->id,
-                'cover_letter'   => $request->coverLetter,
-                'status'         => 'pending',
-                'type'           => 'applied',
-            ]);
+            $application = JobApplication::updateOrCreate(
+                [
+                    'job_vacancy_id' => $request->job_id,
+                    'job_seeker_id'  => $user->jobSeeker?->id,
+                ],
+                [
+                    'cover_letter' => $request->coverLetter,
+                    'status'       => 'pending',
+                    'type'         => 'applied',
+                ]
+            );
 
             // ✅ Handle attachments
             if ($request->hasFile('files')) {

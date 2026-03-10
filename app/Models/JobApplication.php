@@ -13,8 +13,10 @@ class JobApplication extends Model
         'job_seeker_id',
         'job_vacancy_id',
         'cover_letter',
-        'type',
         'status',
+        'interview_status',
+        'finalized_date',
+        'type',
     ];
 
     // Polymorphic relationship for attachments

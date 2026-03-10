@@ -13,3 +13,9 @@ Schedule::command('queue:deadline')
     ->onOneServer()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('queue:deletezip')
+    ->daily()
+    ->onOneServer()
+    ->withoutOverlapping()
+    ->runInBackground();

@@ -18,7 +18,8 @@ use App\Http\Controllers\{
     BulkUploadController,
     ReferenceController,
     ReferenceDetailController,
-    NotificationController
+    NotificationController,
+    ReportController
 };
 
 use App\Http\Controllers\Setting\{
@@ -35,7 +36,7 @@ use App\Http\Controllers\ProfileMenu\{
     MessageController
 };
 
-Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
+Route::middleware(['system.key', 'throttle:100,1'])->group(function () {
     Route::get('/secure-data', function () {
         return ['message' => 'You passed the system key check!'];
     });
@@ -89,6 +90,12 @@ Route::middleware(['system.key', 'throttle:50,1'])->group(function () {
         Route::post('update-notifications', [ProfileSettingController::class, 'updateNotificationSettings']);
 
         Route::get('request-data/{type}', [FetchServiceController::class, 'requestData']);
+
+        Route::get('get-employers', [ReportController::class, 'getEmployers']);
+        Route::post('/check-employer-report', [ReportController::class, 'checkEmployerReport']);
+        Route::post('/generate-employer-report', [ReportController::class, 'generateEmployerReport']);
+
+        Route::get('/report-progress', [ReportController::class, 'getReportProgress']);
     });
 
     // Public Reqeusts ======================================================

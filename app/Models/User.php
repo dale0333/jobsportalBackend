@@ -28,6 +28,7 @@ class User extends Authenticatable
         'is_online',
         'is_active',
         'is_verified',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -151,5 +152,10 @@ class User extends Authenticatable
     public function notifications()
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function reference()
+    {
+        return $this->hasOne(Reference::class);
     }
 }

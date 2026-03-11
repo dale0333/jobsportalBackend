@@ -405,11 +405,9 @@ class JobSeekerController extends Controller
         $message = "Your application for '{$application->jobVacancy->title}' has been submitted successfully.";
         $data = [
             'job_title' => $application->jobVacancy->title,
-            'job_code' => $application->jobVacancy->code,
             'status' => 'submitted',
             'employer_name' => $application->jobVacancy->employer->user->name ?? 'Employer',
             'updated_at' => now()->toDateTimeString(),
-            'application_id' => $application->id,
             'action_type' => 'submitted',
         ];
 

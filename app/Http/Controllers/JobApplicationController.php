@@ -321,11 +321,9 @@ class JobApplicationController extends Controller
                 $message,
                 [
                     'job_title' => $job->title,
-                    'job_code' => $job->code,
                     'status' => $status,
                     'employer_name' => $job->employer->user->name ?? 'Employer',
                     'updated_at' => now()->toDateTimeString(),
-                    'application_id' => $application->id,
                     'action_type' => $status,
                 ]
             );
@@ -338,7 +336,6 @@ class JobApplicationController extends Controller
                 $message,
                 [
                     'job_title' => $job->title,
-                    'job_code' => $job->code,
                     'status' => $status,
                     'employer_name' => $job->employer->user->name ?? 'Employer',
                     'updated_at' => now()->toDateTimeString(),
@@ -354,7 +351,6 @@ class JobApplicationController extends Controller
             "You have {$action['log']} {$updatedCount} application(s) for '{$job->title}'",
             [
                 'job_title' => $job->title,
-                'job_code' => $job->code,
                 'action' => $status,
                 'affected_applications' => $updatedCount,
                 'action_type' => $action['log'],
@@ -377,7 +373,6 @@ class JobApplicationController extends Controller
                 "The application from '{$jobSeekerUser->name}' for '{$application->jobVacancy->title}' is now '{$status}'.",
                 [
                     'job_vacancy'      => $application->jobVacancy->title,
-                    'application_code' => $application->jobVacancy->code,
                     'applicant_name'   => $jobSeekerUser->name,
                     'status'           => $status,
                     'type'             => "Applied",
@@ -394,11 +389,9 @@ class JobApplicationController extends Controller
             $message = $notes;
             $data = [
                 'job_title'      => $application->jobVacancy->title,
-                'job_code'       => $application->jobVacancy->code,
                 'status'         => $status,
                 'employer_name'  => $application->jobVacancy->employer->user->name ?? 'Employer',
                 'updated_at'     => now()->toDateTimeString(),
-                'application_id' => $application->id,
                 'action_type'    => $status,
             ];
 

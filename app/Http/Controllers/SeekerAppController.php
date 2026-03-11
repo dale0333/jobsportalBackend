@@ -219,7 +219,6 @@ class SeekerAppController extends Controller
                 $message,
                 [
                     'job_vacancy' => $jobTitle,
-                    'application_code' => $application->jobVacancy->code ?? 'N/A',
                     'applicant_name' => $applicantName,
                     'status' => $type,
                     'updated_at' => now()->toDateTimeString(),

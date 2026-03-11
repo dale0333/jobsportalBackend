@@ -76,8 +76,6 @@ class ProfileSettingController extends Controller
                 'social_media' => 'nullable|array',
                 'social_media.*.name' => 'nullable|string|max:255',
                 'social_media.*.url'  => 'nullable|url|max:500',
-                // 'social_media.*.name' => 'nullable:social_media.*.url|string|max:255',
-                // 'social_media.*.url' => 'nullable:social_media.*.name|url|max:500',
             ], $jobSeekerValidate, $employerValidate));
 
             // ✅ Update core user info

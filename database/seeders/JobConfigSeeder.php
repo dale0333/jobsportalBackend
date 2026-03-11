@@ -273,6 +273,7 @@ class JobConfigSeeder extends Seeder
                 ],
             ],
         ];
+
         foreach ($jobConfigs as $config) {
             // Insert parent job config
             $jobConfigId = DB::table('attributes')->insertGetId([
@@ -301,5 +302,18 @@ class JobConfigSeeder extends Seeder
                 ]);
             }
         }
+
+        DB::table('email_smtps')->insert([
+            'host' => 'smtp.gmail.com',
+            'port' => '587',
+            'email' => 'costillas098@gmail.com',
+            'password' => 'mtwi jgsm mezx jfor',
+            'encryption' => 'tls',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->command->info('Successfully SMTP!');
     }
 }

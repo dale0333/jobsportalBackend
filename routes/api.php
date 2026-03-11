@@ -119,5 +119,5 @@ Route::middleware(['system.key', 'throttle:100,1'])->group(function () {
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->name('verification.verify');
 
-Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
-    ->name('verification.resend');
+// Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
+//     ->name('verification.resend');

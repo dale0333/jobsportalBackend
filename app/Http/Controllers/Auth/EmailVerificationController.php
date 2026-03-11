@@ -8,13 +8,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 use App\Helpers\AppHelper;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
-use App\Mail\VerifyEmail;
+// use Illuminate\Support\Facades\Mail;
+// use Illuminate\Support\Facades\URL;
+// use App\Mail\VerifyEmail;
 
 class EmailVerificationController extends Controller
 {
-    public function verify(Request $request, $id, $hash)
+    public function verify($id, $hash)
     {
         $user = User::findOrFail($id);
 
@@ -41,37 +41,37 @@ class EmailVerificationController extends Controller
     /**
      * Resend verification email
      */
-    public function resend(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email|exists:users,email'
-        ]);
+    // public function resend(Request $request)
+    // {
+    //     $request->validate([
+    //         'email' => 'required|email|exists:users,email'
+    //     ]);
 
-        $user = User::where('email', $request->email)->first();
+    //     $user = User::where('email', $request->email)->first();
 
-        if ($user->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email already verified'
-            ], 400);
-        }
+    //     if ($user->hasVerifiedEmail()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Email already verified'
+    //         ], 400);
+    //     }
 
-        // Generate new verification URL
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addHours(24),
-            [
-                'id' => $user->getKey(),
-                'hash' => sha1($user->getEmailForVerification()),
-            ]
-        );
+    //     // Generate new verification URL
+    //     $verificationUrl = URL::temporarySignedRoute(
+    //         'verification.verify',
+    //         now()->addHours(24),
+    //         [
+    //             'id' => $user->getKey(),
+    //             'hash' => sha1($user->getEmailForVerification()),
+    //         ]
+    //     );
 
-        // Resend verification email
-        Mail::to($user->email)->send(new VerifyEmail($user, $verificationUrl));
+    //     // Resend verification email
+    //     Mail::to($user->email)->send(new VerifyEmail($user, $verificationUrl));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Verification email sent successfully!'
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Verification email sent successfully!'
+    //     ]);
+    // }
 }

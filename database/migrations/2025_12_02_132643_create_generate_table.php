@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('title')->nullable();
 
             // Better data types
-            $table->unsignedTinyInteger('month')->nullable();
+            $table->char('month', 2)->nullable();
             $table->unsignedSmallInteger('year')->nullable();
 
             $table->enum('status', ['active', 'inactive', 'pending'])->default('pending');

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{User, Reference, JobVacancy, Employer};
+use App\Models\{User, Reference, JobVacancy, Employer, JobApplication};
 use App\Traits\ApiResponseTrait;
 
 use Maatwebsite\Excel\Facades\Excel;
@@ -11,6 +11,7 @@ use App\Exports\{ReferenceDetailsExport, ReferenceEmployerExport};
 
 use ZipArchive;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
@@ -197,18 +198,7 @@ class ReportController extends Controller
         $year = $filters['year'] ?? null;
         $type = $filters['type'];
 
-        $query = User::with([
-            'reference' => function ($q) use ($month, $year) {
-                $q->where('month', $month)
-                    ->where('year', $year)
-                    ->with('details');
-            }
-        ])->where('user_type', 'employer');
-
-        if (!empty($employerIds)) {
-            $query->whereIn('id', $employerIds);
-        }
-
+        $query = User::with(['reference.details'])->whereIn('id', $employerIds);
         $employers = $query->get();
 
         $map = [
@@ -219,25 +209,31 @@ class ReportController extends Controller
 
         $display = $map[$type] ?? '11';
 
+        // Ensure ZIP folder exists
         $zipDir = storage_path('app/public/zip');
         if (!file_exists($zipDir)) {
             mkdir($zipDir, 0777, true);
         }
 
-        $zipFileName = 'report-' . now()->format('Ymd_His') . '.zip';
+        $zipFileName = $filters['type'] . '-' . now()->format('Ymd_His') . '.zip';
         $zipPath = $zipDir . '/' . $zipFileName;
 
         $zip = new \ZipArchive;
-
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             throw new \Exception("Cannot create zip file");
         }
 
         foreach ($employers as $employer) {
+            // Get reference
+            $reference = $employer->reference()
+                ->when($month && $year, fn($q) => $q->where('month', $month)->where('year', $year))
+                ->orderByDesc('year')
+                ->orderByDesc('month')
+                ->first();
 
-            $reference = $employer->reference->first();
             if (!$reference) continue;
 
+            // Load PDF
             $pdf = Pdf::loadView("reports.emp-$display", [
                 'title' => $employer->name,
                 'generated_at' => now()->format('d F Y'),
@@ -248,10 +244,12 @@ class ReportController extends Controller
             $name = preg_replace('/[^A-Za-z0-9\-]/', '-', $employer->name);
             $empId = str_pad($employer->id, 6, '0', STR_PAD_LEFT);
 
-            $zip->addFromString(
-                "{$empId}-{$name}.pdf",
-                $pdf->output()
-            );
+            $filename = "{$empId}-{$name}";
+            if ($month && $year) {
+                $filename .= "-{$year}_{$month}";
+            }
+
+            $zip->addFromString("{$filename}.pdf", $pdf->output());
         }
 
         $zip->close();
@@ -268,60 +266,87 @@ class ReportController extends Controller
         $year = (int)($filters['year'] ?? 0);
         $mode = $filters['mode'] ?? null;
 
-        $previousMonth = $month == 1 ? 12 : $month - 1;
-        $previousYear = $month == 1 ? $year - 1 : $year;
-
         $indirectCategories = ['Security', 'Janitorial', 'Ground', 'Construction', 'Others'];
 
         $expatNationalities = [
-            'AM',
-            'AUS',
-            'CAN',
-            'BRIT',
-            'IND',
-            'ISR',
-            'JAP',
-            'KOR',
-            'MAL',
-            'RUS',
-            'SING',
-            'TAI',
-            'UKR',
-            'OTHERS'
+            'American',
+            'Australian',
+            'British',
+            'Canadian',
+            'Chinese',
+            'Indian',
+            'Israeli',
+            'Japanese',
+            'Korean',
+            'Malaysian',
+            'Russian',
+            'Singaporean',
+            'Taiwanese',
+            'Ukrainian',
+            'Others'
         ];
 
+        /**
+         * ✅ STEP 1: Get latest month/year if none selected
+         */
+        if (!$month || !$year) {
+            $latest = \App\Models\Reference::orderByDesc('year')
+                ->orderByDesc('month')
+                ->first();
+
+            if ($latest) {
+                $month = $latest->month;
+                $year = $latest->year;
+            }
+        }
+
+        /**
+         * ✅ STEP 2: Build query
+         */
         $query = Employer::with(['user', 'references.details']);
 
         if ($mode !== 'all' && !empty($employerIds)) {
             $query->whereIn('user_id', $employerIds);
         }
 
+        /**
+         * ✅ STEP 3: Transform data
+         */
         $results = $query->get()->map(function ($employer) use (
             $month,
             $year,
-            $previousMonth,
-            $previousYear,
-            $expatNationalities,
             $indirectCategories,
+            $expatNationalities,
         ) {
 
+            // Try selected month/year
             $currentRefs = $employer->references
                 ->where('month', $month)
                 ->where('year', $year);
 
-            $previousRefs = $employer->references
-                ->where('month', $previousMonth)
-                ->where('year', $previousYear);
-
             if ($currentRefs->isNotEmpty()) {
                 $details = $currentRefs->pluck('details')->flatten();
                 $remarks = '*';
-            } elseif ($previousRefs->isNotEmpty()) {
-                $details = $previousRefs->pluck('details')->flatten();
-                $remarks = '**';
+                $usedMonth = $month;
+                $usedYear = $year;
             } else {
-                $details = collect();
-                $remarks = '^';
+                // fallback to latest per employer
+                $latestRef = $employer->references()
+                    ->orderByDesc('year')
+                    ->orderByDesc('month')
+                    ->first();
+
+                if ($latestRef) {
+                    $details = collect($latestRef->details);
+                    $remarks = '**';
+                    $usedMonth = $latestRef->month;
+                    $usedYear = $latestRef->year;
+                } else {
+                    $details = collect();
+                    $remarks = '^';
+                    $usedMonth = null;
+                    $usedYear = null;
+                }
             }
 
             $indirect = $details->whereIn('category', $indirectCategories)->count();
@@ -329,41 +354,59 @@ class ReportController extends Controller
             $expat    = $details->whereIn('nationality', $expatNationalities)->count();
 
             return [
-                'loc_no' => $employer->locator_number,
-                'company' => $employer->user->name ?? '',
+                'loc_no'   => $employer->locator_number,
+                'company'  => $employer->user->name ?? '',
                 'industry' => $employer->industry,
-                'direct' => $direct,
+                'direct'   => $direct,
                 'indirect' => $indirect,
-                'expat' => $expat,
-                'total' => $direct + $indirect + $expat,
-                'remarks' => $remarks
+                'expat'    => $expat,
+                'total'    => $direct + $indirect + $expat,
+                'remarks'  => $remarks,
+
+                // ✅ Optional (very useful for debugging/reporting)
+                'month_used' => $usedMonth,
+                'year_used'  => $usedYear,
             ];
         });
 
-        // Generate Excel **in memory**
-        $excelData = Excel::raw(new ReferenceEmployerExport($results), \Maatwebsite\Excel\Excel::XLSX);
+        /**
+         * ✅ STEP 4: Generate Excel (in memory)
+         */
+        $excelData = Excel::raw(
+            new ReferenceEmployerExport($results),
+            \Maatwebsite\Excel\Excel::XLSX
+        );
 
-        // Ensure ZIP directory exists
+        /**
+         * ✅ STEP 5: Ensure ZIP directory exists
+         */
         $zipDir = storage_path('app/public/zip');
         if (!file_exists($zipDir)) {
             mkdir($zipDir, 0777, true);
         }
 
-        // Create ZIP file
-        $zipFileName = 'report-' . now()->format('Ymd_His') . '.zip';
+        /**
+         * ✅ STEP 6: Create ZIP
+         */
+        $zipFileName = ($filters['type'] ?? 'employment') . "-{$year}_{$month}_" . now()->format('Ymd_His') . '.zip';
         $zipPath = $zipDir . '/' . $zipFileName;
 
         $zip = new \ZipArchive;
+
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
             throw new \Exception("Cannot create ZIP file");
         }
 
-        // Add Excel data directly to ZIP
         $zip->addFromString('Employment_Report.xlsx', $excelData);
         $zip->close();
 
+        /**
+         * ✅ STEP 7: Return download link
+         */
         return response()->json([
-            'download' => asset("storage/zip/$zipFileName")
+            'download' => asset("storage/zip/$zipFileName"),
+            'month' => $month,
+            'year' => $year
         ]);
     }
 
@@ -405,7 +448,7 @@ class ReportController extends Controller
             mkdir($zipDir, 0777, true);
         }
 
-        $zipFileName = 'Job_Vacancies_' . now()->format('Ymd_His') . '.zip';
+        $zipFileName = $filters['type'] . '-' . now()->format('Ymd_His') . '.zip';
         $zipPath = $zipDir . '/' . $zipFileName;
 
         $zip = new \ZipArchive;
@@ -447,7 +490,7 @@ class ReportController extends Controller
             mkdir($zipDir, 0777, true);
         }
 
-        $zipFileName = 'referred-' . now()->format('Ymd_His') . '.zip';
+        $zipFileName = $filters['type'] . '-' . now()->format('Ymd_His') . '.zip';
         $zipPath = $zipDir . '/' . $zipFileName;
 
         $zip = new \ZipArchive;
@@ -516,7 +559,7 @@ class ReportController extends Controller
             mkdir($zipDir, 0777, true);
         }
 
-        $zipFileName = 'certificate-' . now()->format('Ymd_His') . '.zip';
+        $zipFileName = $filters['type'] . '-' . now()->format('Ymd_His') . '.zip';
         $zipPath = $zipDir . '/' . $zipFileName;
 
         $zip = new \ZipArchive;
@@ -595,7 +638,7 @@ class ReportController extends Controller
         }
 
         // Create ZIP file
-        $zipFileName = 'reference-file-' . now()->format('Ymd_His') . '.zip';
+        $zipFileName = $filters['type'] . '-' . now()->format('Ymd_His') . '.zip';
         $zipPath = $zipDir . '/' . $zipFileName;
 
         $zip = new \ZipArchive;
@@ -610,5 +653,109 @@ class ReportController extends Controller
         return response()->json([
             'download' => asset("storage/zip/$zipFileName")
         ]);
+    }
+
+    // sigle report
+    public function generateEmpSingleReports(Request $request)
+    {
+        $employerId = $request->id;
+        $month = $request->month;
+        $year = $request->year;
+        $type = $request->type;
+
+        $employer = User::with('reference.details')->find($employerId);
+        if (!$employer) {
+            return response()->json(['error' => 'Employer not found'], 404);
+        }
+
+        $map = [
+            'FM-CDC-CSRPD-11' => '11',
+            'FM-CDC-CSRPD-12' => '12',
+            'FM-CDC-CSRPD-13' => '13',
+        ];
+
+        $display = $map[$type] ?? '11';
+
+        // Get reference
+        $reference = $employer->reference()
+            ->when($month && $year, fn($q) => $q->where('month', $month)->where('year', $year))
+            ->orderByDesc('year')
+            ->orderByDesc('month')
+            ->first();
+
+        if (!$reference) {
+            return response()->json(['error' => 'No reference found for selected month/year'], 404);
+        }
+
+        // Generate PDF
+        $pdf = Pdf::loadView("reports.emp-$display", [
+            'title' => $employer->name,
+            'generated_at' => now()->format('d F Y'),
+            'records' => $reference,
+            'filters' => $request->all()
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream(); // stream PDF directly
+    }
+
+    public function generateJobHired(Request $request)
+    {
+        try {
+            $perPage = $request->input('per_page', 10);
+            $search  = $request->input('search');
+
+            $query = JobApplication::with([
+                'jobSeeker.user.jobSeeker',
+                'jobVacancy.employer.user'
+            ])->where('status', 2);
+
+            // Search by job title OR job seeker name
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhereHas('jobSeeker.user', function ($uq) use ($search) {
+                            $uq->where('name', 'like', "%{$search}%");
+                        });
+                });
+            }
+
+            $data = $query->latest()->paginate($perPage);
+
+            // Wrap pagination data
+            $result = [
+                'items'        => $data->items(),
+                'total'        => $data->total(),
+                'per_page'     => $data->perPage(),
+                'current_page' => $data->currentPage(),
+            ];
+
+            return $this->successResponse($result, 'Fetched hired jobs successfully.', 200);
+        } catch (\Throwable $th) {
+            return $this->errorResponse('Failed to fetch hired jobs.', 500, $th->getMessage());
+        }
+    }
+
+    public function checkEmployerInprogress(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $query = JobApplication::with([
+                'jobSeeker.user.jobSeeker',
+                'jobVacancy.employer.user'
+            ])
+                ->whereIn('status', [0, 1]) // interview / process
+                ->where('updated_at', '<=', Carbon::now()->subDays(5))
+                ->where('status', 'applied')
+                ->whereHas('jobVacancy.employer', function ($q) use ($user) {
+                    $q->where('id', $user->employer->id);
+                });
+
+            $data = $query->latest()->get();
+
+            return $this->successResponse($data, 'Fetched in-progress applications (5 days no update).', 200);
+        } catch (\Throwable $th) {
+            return $this->errorResponse('Failed to fetch in-progress applications.', 500, $th->getMessage());
+        }
     }
 }

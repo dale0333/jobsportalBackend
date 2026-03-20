@@ -211,6 +211,20 @@ return new class extends Migration
             $table->text('message');
             $table->timestamps();
         });
+
+        Schema::create('peso_students', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->string('contact')->nullable();
+            $table->string('education_level')->nullable();
+            $table->string('field_of_study')->nullable();
+            $table->json('skills')->nullable();
+            $table->json('type')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function down(): void
@@ -230,5 +244,6 @@ return new class extends Migration
         Schema::dropIfExists('job_seekers');
         Schema::dropIfExists('users');
         Schema::dropIfExists('get_in_touches');
+        Schema::dropIfExists('peso_students');
     }
 };

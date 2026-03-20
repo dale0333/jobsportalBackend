@@ -92,17 +92,17 @@ class DashboardController extends Controller
 
             // Interview applications
             $interview = (clone $applicationQuery)
-                ->where('status', 'interview')
+                ->where('status', 1)
                 ->count();
 
             // Hired applications
             $hired = (clone $applicationQuery)
-                ->where('status', 'hired')
+                ->where('status', 2)
                 ->count();
 
             // Rejected applications
             $rejected = (clone $applicationQuery)
-                ->where('status', 'rejected')
+                ->where('status', 3)
                 ->count();
 
             // Growth percentages
@@ -234,7 +234,7 @@ class DashboardController extends Controller
             );
 
             // === Hired Candidates ===
-            $hiredQuery = JobApplication::where('status', 'hired');
+            $hiredQuery = JobApplication::where('status', 1);
             if ($employerId) {
                 $hiredQuery->whereHas('jobVacancy', function ($q) use ($employerId) {
                     $q->where('employer_id', $employerId);
@@ -243,7 +243,7 @@ class DashboardController extends Controller
             $totalHired = $hiredQuery->count();
 
             // Hire rate
-            $processedQuery = JobApplication::whereIn('status', ['hired', 'rejected', 'withdrawn']);
+            $processedQuery = JobApplication::whereIn('status', [1, 3]);
             if ($employerId) {
                 $processedQuery->whereHas('jobVacancy', function ($q) use ($employerId) {
                     $q->where('employer_id', $employerId);
@@ -373,7 +373,7 @@ class DashboardController extends Controller
             }
 
             // Application status counts
-            $statuses = ['hired', 'interview', 'pending', 'rejected', 'withdrawn'];
+            $statuses = [1, 2, 3, 4, 5];
             $applicationStatus = [];
 
             foreach ($statuses as $status) {
@@ -389,7 +389,7 @@ class DashboardController extends Controller
             // Additional statistics
             $totalApplications = array_sum($monthlyApplications);
             $hireRate = $totalApplications > 0
-                ? round(($applicationStatus['hired'] / $totalApplications) * 100, 2)
+                ? round(($applicationStatus[1] / $totalApplications) * 100, 2)
                 : 0;
 
             $data = [
@@ -551,7 +551,7 @@ class DashboardController extends Controller
 
         $hiredQuery = JobApplication::selectRaw('MONTH(created_at) as month, COUNT(*) as count')
             ->whereYear('created_at', $year)
-            ->where('status', 'hired');
+            ->where('status', 2);
 
         $vacanciesQuery = JobVacancy::selectRaw('MONTH(created_at) as month, COUNT(*) as count')
             ->whereYear('created_at', $year);
@@ -589,12 +589,12 @@ class DashboardController extends Controller
                 ->count();
         }
 
-        $rejected = JobApplication::where('status', 'rejected')
+        $rejected = JobApplication::where('status', 3)
             ->whereYear('created_at', $year)
             ->where($applicationFilter)
             ->count();
 
-        $hired = JobApplication::where('status', 'hired')
+        $hired = JobApplication::where('status', 2)
             ->whereYear('created_at', $year)
             ->where($applicationFilter)
             ->count();
@@ -728,7 +728,7 @@ class DashboardController extends Controller
                         'jobSeeker.user',
                         'jobVacancy',
                         'jobApplicationTransactions',
-                    ])->where('status', 'hired');
+                    ])->where('status', 1);
 
                     // Filter by date if provided
                     if (!empty($dateStart) && !empty($dateEnd)) {

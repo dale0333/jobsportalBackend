@@ -87,18 +87,17 @@
         }
 
         .notes-section ol {
-            margin-top: 5px;
+            margin-top: 1px;
             margin-bottom: 20px;
         }
 
         .notes-section li {
-            margin-bottom: 5px;
+            margin-bottom: 1px;
         }
 
         .certification-statement {
-            margin-top: 20px;
             font-weight: bold;
-            font-size: 10px;
+            font-size: 9px;
         }
     </style>
 </head>
@@ -127,7 +126,7 @@
         </tr>
         <tr>
             <td>NAME OF ENTERPRISE:</td>
-            <td colspan="3">{{ $records->user->name }}</td>
+            <td colspan="3">{{ $title }}</td>
         </tr>
         <tr>
             <td>NAME OF AGENCY / CONTRACTOR:</td>
@@ -145,20 +144,24 @@
                 <td colspan="7" class="text-center">LOCAL / FILIPINO EMPLOYEES</td>
             </tr>
             <tr>
-                <td rowspan="2" class="text-center">DIRECT</td>
+                <td rowspan="2" class="text-center" style="width: 9%;">DIRECT</td>
                 <td colspan="5" class="text-center">INDIRECT</td>
-                <td rowspan="2" class="text-center">TOTAL</td>
+                <td rowspan="2" class="text-center" style="width: 9%;">TOTAL</td>
             </tr>
             <tr>
-                <td class="text-center">Security</td>
-                <td class="text-center">Janitorial</td>
-                <td class="text-center">Ground</td>
-                <td class="text-center">Construction</td>
-                <td class="text-center">Others</td>
+                <td class="text-center" style="width: 9%;">Security</td>
+                <td class="text-center" style="width: 9%;">Janitorial</td>
+                <td class="text-center" style="width: 9%;">Ground</td>
+                <td class="text-center" style="width: 9%;">Construction</td>
+                <td class="text-center" style="width: 9%;">Others</td>
             </tr>
 
             @php
-                $records = $records->details;
+                $records = collect($records->details ?? [])
+                    ->filter(function ($item) {
+                        return $item->nationality == 'Filipino';
+                    })
+                    ->values();
 
                 $indirectCategories = ['Security', 'Janitorial', 'Ground', 'Construction', 'Others'];
                 $categories = array_merge(['Direct'], $indirectCategories);
@@ -367,8 +370,6 @@
         </tbody>
     </table>
 
-    <br>
-
     <!-- CERTIFICATION SECTION -->
     <div>
         <div class="notes-section">
@@ -392,7 +393,7 @@
 
         <div class="notes-section">
             <strong>Notes:</strong>
-            <ol>
+            <ol style="font-size: 11px">
                 <li>To be submitted monthly on or before the 10th day of each month</li>
                 <li>Include employees employed through Manpower Services i.e., Security Guards, Janitorials,
                     Construction, Ground Maintenance, etc.</li>

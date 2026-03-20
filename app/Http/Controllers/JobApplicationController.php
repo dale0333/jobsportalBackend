@@ -139,13 +139,13 @@ class JobApplicationController extends Controller
              * Build summary counts
              */
             $counts = [
-                'pending'     => $countStatuses['pending'] ?? 0,
-                'processing'  => $countStatuses['processing'] ?? 0,
-                'withdrawn'   => $countStatuses['withdrawn'] ?? 0,
-                'interview'   => $countStatuses['interview'] ?? 0,
-                'rejected'    => $countStatuses['rejected'] ?? 0,
-                'hired'       => $countStatuses['hired'] ?? 0,
-                'all'         => $countStatuses->sum(),
+                'reviewing'     => $countStatuses['0'] ?? 0,
+                'interview'     => $countStatuses['1'] ?? 0,
+                'hired'         => $countStatuses['2'] ?? 0,
+                'not_qualified' => $countStatuses['3'] ?? 0,
+                'for_eval'      => $countStatuses['4'] ?? 0,
+                'not_show'      => $countStatuses['5'] ?? 0,
+                'all'           => $countStatuses->sum(),
             ];
 
             /**
@@ -188,7 +188,7 @@ class JobApplicationController extends Controller
             $application->update([
                 'status' => $validated['status'],
                 'type'   => 'applied',
-                'finalized_date' => $validated['finalized_date'] ?? null,
+                'date_status' => $validated['finalized_date'] ?? null,
             ]);
 
             // ✅ Create a transaction record
@@ -198,7 +198,7 @@ class JobApplicationController extends Controller
                 'status'     => $validated['status'],
             ]);
 
-            $this->storeNotification($application, $application->jobSeeker->user ?? null, $validated['status'], $validated['notes']);
+            $this->storeNotification($application, $application->jobSeeker->user ?? null, $validated['status'], $validated['notes'], $validated['finalized_date']);
 
             // ✅ Activity log
             AppHelper::userLog(
@@ -217,7 +217,8 @@ class JobApplicationController extends Controller
         $validated = $request->validate([
             'applicant_ids' => 'required|array',
             'applicant_ids.*' => 'integer',
-            'status' => 'required|string|in:invited,withdrawn,pending,interview,rejected,hired',
+            'status' => 'required|string',
+            'notes' => 'nullable|string',
         ]);
 
         try {
@@ -266,7 +267,8 @@ class JobApplicationController extends Controller
                 $validated['status'],
                 $action,
                 $request,
-                $updatedCount
+                $updatedCount,
+                $validated['notes'],
             );
 
             // Log the action
@@ -307,7 +309,7 @@ class JobApplicationController extends Controller
     }
 
     // privite ==================================================================
-    private function storeNotificationInvite($applications, $job, $status, $action, $request, $updatedCount)
+    private function storeNotificationInvite($applications, $job, $status, $action, $request, $updatedCount, $notes)
     {
         foreach ($applications as $application) {
             $title = "Application has been " . ucfirst($status);
@@ -321,10 +323,11 @@ class JobApplicationController extends Controller
                 $message,
                 [
                     'job_title' => $job->title,
+                    'remarks' => $notes,
                     'status' => $status,
                     'employer_name' => $job->employer->user->name ?? 'Employer',
-                    'updated_at' => now()->toDateTimeString(),
                     'action_type' => $status,
+
                 ]
             );
 
@@ -336,9 +339,9 @@ class JobApplicationController extends Controller
                 $message,
                 [
                     'job_title' => $job->title,
+                    'remarks' => $notes,
                     'status' => $status,
                     'employer_name' => $job->employer->user->name ?? 'Employer',
-                    'updated_at' => now()->toDateTimeString(),
                 ]
             );
         }
@@ -351,48 +354,71 @@ class JobApplicationController extends Controller
             "You have {$action['log']} {$updatedCount} application(s) for '{$job->title}'",
             [
                 'job_title' => $job->title,
-                'action' => $status,
+                'remarks' => $notes,
+                'status' => $status,
                 'affected_applications' => $updatedCount,
                 'action_type' => $action['log'],
             ]
         );
     }
 
-    private function storeNotification($application, $jobSeekerUser, $status, $notes)
+    private function storeNotification($application, $jobSeekerUser, $status, $notes, $statusDate)
     {
-        // -----------------------------------------
-        // Employer stored notification
-        // -----------------------------------------
         $employerUser = $application->jobVacancy->employer->user ?? null;
 
+        $statusLabel = AppHelper::statusApplication($status);
+
+        // Safer status key mapping
+        $statusName = match ($status) {
+            1 => 'interview_date',
+            2 => 'hired_date',
+            default => null,
+        };
+
+        $dateStatus = $statusDate
+            ? date('M d, Y', strtotime($statusDate))
+            : now()->format('M d, Y');
+
+        // -----------------------------------------
+        // Employer Notification
+        // -----------------------------------------
         if ($employerUser && $jobSeekerUser) {
+
             AppHelper::storedNotification(
                 $employerUser,
                 'job_application_update',
                 'Job Application Status Updated',
-                "The application from '{$jobSeekerUser->name}' for '{$application->jobVacancy->title}' is now '{$status}'.",
+                "The application from '{$jobSeekerUser->name}' for '{$application->jobVacancy->title}' is now '{$statusLabel}'.",
                 [
-                    'job_vacancy'      => $application->jobVacancy->title,
-                    'applicant_name'   => $jobSeekerUser->name,
-                    'status'           => $status,
-                    'type'             => "Applied",
-                    'cover_letter'     => $application->cover_letter ?? 'No cover letter provided',
+                    'job_vacancy'    => $application->jobVacancy->title,
+                    'applicant_name' => $jobSeekerUser->name,
+                    'status'         => $statusLabel,
+                    'type'           => "Applied",
+                    'cover_letter'   => $application->cover_letter ?? 'No cover letter provided',
+
+                    // dynamic date field
+                    $statusName      => $dateStatus,
                 ]
             );
         }
 
         // -----------------------------------------
-        // Job Seeker email & system notification
+        // Job Seeker Notification
         // -----------------------------------------
         if ($jobSeekerUser) {
+
             $title = "Application Status Updated";
-            $message = $notes;
+
+            $message = $notes
+                ? $notes
+                : "Your application for '{$application->jobVacancy->title}' is now {$statusLabel}.";
+
             $data = [
-                'job_title'      => $application->jobVacancy->title,
-                'status'         => $status,
-                'employer_name'  => $application->jobVacancy->employer->user->name ?? 'Employer',
-                'updated_at'     => now()->toDateTimeString(),
-                'action_type'    => $status,
+                'job_title'     => $application->jobVacancy->title,
+                'status'        => $statusLabel,
+                $statusName     => $dateStatus,
+                'employer_name' => $application->jobVacancy->employer->user->name ?? 'Employer',
+                'updated_at'    => now()->toDateTimeString(),
             ];
 
             // Email

@@ -408,67 +408,6 @@
                 </a>
             </div>
 
-            <!-- Features Grid -->
-            <div class="features-grid">
-                <table class="features-table" cellspacing="15">
-                    <tr>
-                        <td>
-                            <div class="feature-icon">📋</div>
-                            <p class="feature-title">Application Tracking</p>
-                            <p class="feature-desc">Monitor your application status in real-time</p>
-                        </td>
-                        <td>
-                            <div class="feature-icon">⚡</div>
-                            <p class="feature-title">Quick Updates</p>
-                            <p class="feature-desc">Instant notifications for status changes</p>
-                        </td>
-                        <td>
-                            <div class="feature-icon">🛡️</div>
-                            <p class="feature-title">Secure Process</p>
-                            <p class="feature-desc">Your personal data is protected</p>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Status-specific Information -->
-            @if (isset($data['status']))
-                <div class="info-box">
-                    <h3>What This Means</h3>
-                    <ul>
-                        @if ($data['status'] === 'invited')
-                            <li>You have been invited for an interview</li>
-                            <li>The employer will contact you with interview details</li>
-                            <li>Prepare your documents and portfolio</li>
-                            <li>Research the company before the interview</li>
-                        @elseif ($data['status'] === 'withdrawn')
-                            <li>The invitation for this position has been withdrawn</li>
-                            <li>You can still apply for other positions</li>
-                            <li>Your profile remains active for other opportunities</li>
-                            <li>Continue exploring other job openings</li>
-                        @elseif ($data['status'] === 'hired')
-                            <li>Congratulations! You have been selected</li>
-                            <li>The employer will contact you with offer details</li>
-                            <li>Prepare your required documents</li>
-                            <li>Review the job offer carefully</li>
-                        @else
-                            <li>Keep an eye on your email for further updates</li>
-                            <li>Ensure your contact information is up to date</li>
-                            <li>Prepare for potential interviews or assessments</li>
-                            <li>Check your spam folder if you're expecting updates</li>
-                        @endif
-                    </ul>
-                </div>
-            @endif
-
-            <!-- Didn't Apply Section -->
-            <div class="warning-box">
-                <h3>Not Expecting This Notification?</h3>
-                <p>
-                    If you didn't submit this application or believe this was sent in error,
-                    please contact our support team immediately. Your account security is important to us.
-                </p>
-            </div>
         </div>
 
         <!-- Footer -->

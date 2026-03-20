@@ -91,58 +91,16 @@ class SeekerAppController extends Controller
         }
     }
 
-
-    // public function update($id, Request $request)
-    // {
-    //     try {
-    //         $user = $request->user();
-
-    //         $application = JobApplication::with([
-    //             'jobSeeker.user',
-    //             'jobVacancy.employer.user'
-    //         ])->where('job_seeker_id', $user->jobSeeker->id)
-    //             ->where('id', $id)
-    //             ->first();
-
-    //         if (!$application) {
-    //             return $this->errorResponse('Job application not found.', 404);
-    //         }
-
-    //         // Update application status to withdrawn
-    //         $application->update([
-    //             'status' => 'withdrawn',
-    //         ]);
-
-    //         // Create a transaction record
-    //         $application->jobApplicationTransactions()->create([
-    //             'process_by' => $user->id,
-    //             'notes' => 'Application withdrawn by job seeker',
-    //             'status' => 'withdrawn',
-    //         ]);
-
-    //         // ✅ Send notifications to both employer and job seeker
-    //         $this->storeWithdrawalNotification($application);
-
-    //         // ✅ Activity log
-    //         AppHelper::userLog(
-    //             $user->id,
-    //             "Withdrawn Job Application '{$application->id}'"
-    //         );
-
-    //         return $this->successResponse(null, 'Job application withdrawn successfully!');
-    //     } catch (\Exception $e) {
-    //         return $this->errorResponse('Failed to withdraw job application.', 500, $e->getMessage());
-    //     }
-    // }
-
     public function update($id, Request $request)
     {
         try {
             $user = $request->user();
 
             $request->validate([
-                'type'  => 'required|in:accepted,rescheduled,withdrawn,other',
-                'notes' => 'nullable|string|max:1000',
+                'type'     => 'required|string',
+                'status'   => 'nullable|integer',
+                'selected' => 'nullable|in:accept,decline',
+                'notes'    => 'nullable|string|max:1000',
             ]);
 
             $application = JobApplication::with([
@@ -157,31 +115,41 @@ class SeekerAppController extends Controller
                 return $this->errorResponse('Job application not found.', 404);
             }
 
-            if ($application->status === 'interview' && $request->type == 'accepted') {
+            $action = $request->selected;
+
+            // 🔹 Handle invited → applied / matched
+            if ($request->type === 'invited' && $request->status == '0') {
                 $application->update([
-                    'interview_status' => true,
+                    'type' => $action === 'accept' ? 'applied' : 'matched',
                 ]);
             }
 
-            // ✅ Store transaction history
+            // 🔹 Handle interview response
+            if ($request->type === 'applied' && $request->status == '1') {
+                $application->update([
+                    'is_accepted' => $action === 'accept' ? 1 : 2,
+                ]);
+            }
+
+            // ✅ Store transaction history (FIXED)
             $application->jobApplicationTransactions()->create([
                 'process_by' => $user->id,
-                'notes'      => $request->notes ?? "Application {$request->type} by job seeker",
-                'status'     => $request->type,
+                'notes'      => $request->notes ?? "Application {$action} by job seeker",
+                'status'     => $action === 'decline' ? 6 : $request->status,
             ]);
 
-            // ✅ Send notification
-            $this->storeUpdateNotification($application, $request->type);
+            // ✅ Notification
+            $this->storeUpdateNotification($application, $action);
 
             // ✅ Activity log
             AppHelper::userLog(
                 $user->id,
-                ucfirst($request->type) . " Job Application '{$application->id}'"
+                ucfirst($action) . " Job Application '{$application->id}'"
             );
 
             return $this->successResponse(
                 $application,
-                "Application {$request->type} successfully!"
+                "Application {$action} successfully!"
             );
         } catch (\Exception $e) {
             return $this->errorResponse(

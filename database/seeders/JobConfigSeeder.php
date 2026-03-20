@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
+use Faker\Factory as Faker;
+use Illuminate\Support\Facades\Hash;
+
 class JobConfigSeeder extends Seeder
 {
     public function run(): void
@@ -315,5 +318,50 @@ class JobConfigSeeder extends Seeder
         ]);
 
         $this->command->info('Successfully SMTP!');
+
+
+
+        $faker = Faker::create();
+        // ===================================================================================
+        $jobSeekers = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $dateOfBirth = $faker->dateTimeBetween('-50 years', '-20 years')->format('Y-m-d');
+            $gender = $faker->randomElement(['male', 'female', 'other']);
+            $firstName = $gender === 'male' ? $faker->firstNameMale : ($gender === 'female' ? $faker->firstNameFemale : $faker->firstName);
+            $lastName = $faker->lastName;
+            $createdAt = $faker->dateTimeBetween('2025-01-01', '2025-12-31');
+
+            // Create user
+            $userId = DB::table('users')->insertGetId([
+                'user_type' => 'job_seeker',
+                'name' => $firstName . ' ' . $lastName,
+                'email' => strtolower($firstName . '.' . $lastName . $i . '@jobseeker.com'),
+                'email_verified_at' => now(),
+                'password' => Hash::make('password123'),
+                'telephone' => $faker->phoneNumber,
+                'address' => $faker->address,
+                'bio' => $faker->optional()->paragraph(3),
+                'is_active' => 1,
+                'created_at' => $createdAt,
+                'updated_at' => $faker->dateTimeBetween($createdAt->format('Y-m-d'), '2025-12-31'),
+            ]);
+
+            $jobSeekers[] = [
+                'user_id' => $userId,
+                'date_of_birth' => $dateOfBirth,
+                'gender' => $gender,
+                'education_level' => 'Bachelor\'s Degree',
+                'field_of_study' => 'Computer Science',
+                'skills' => json_encode(['PHP', 'JavaScript', 'Laravel', 'MySQL']),
+                'services' => json_encode($faker->randomElements(range(1, 20), $faker->numberBetween(2, 4))),
+                'years_of_experience' => $faker->numberBetween(0, 20),
+                'preferred_location' => 'Manila',
+                'expected_salary' => $faker->numberBetween(20000, 80000),
+                'is_available' => $faker->boolean(80),
+                'created_at' => $createdAt,
+                'updated_at' => $faker->dateTimeBetween($createdAt->format('Y-m-d'), '2025-12-31'),
+            ];
+        }
+        DB::table('job_seekers')->insert($jobSeekers);
     }
 }

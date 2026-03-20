@@ -4,7 +4,7 @@ namespace App\Http\Controllers\JobConfig;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\JobCategory;
+use App\Models\Category;
 use App\Helpers\AppHelper;
 
 class CategoryController extends Controller
@@ -17,7 +17,7 @@ class CategoryController extends Controller
         $perPage = $request->input('per_page', 10);
         $search  = $request->input('search');
 
-        $query = JobCategory::query();
+        $query = Category::query();
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
@@ -45,7 +45,7 @@ class CategoryController extends Controller
         ]);
 
         try {
-            $data = JobCategory::create([
+            $data = Category::create([
                 'name' => $validated['name'],
                 'description' => $validated['description'],
                 'status' => $validated['status'] ?? 'inactive',
@@ -79,7 +79,7 @@ class CategoryController extends Controller
         ]);
 
         try {
-            $data = JobCategory::findOrFail($id);
+            $data = Category::findOrFail($id);
 
             $data->update([
                 'name' => $request->name,
@@ -110,7 +110,7 @@ class CategoryController extends Controller
     public function destroy(Request $request, string $id)
     {
         try {
-            $data = JobCategory::findOrFail($id);
+            $data = Category::findOrFail($id);
             $name = $data->name;
 
             $data->delete();

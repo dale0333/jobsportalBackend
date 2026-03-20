@@ -15,11 +15,15 @@ use App\Http\Controllers\{
     UserLogController,
     ProfileSettingController,
     DashboardController,
-    BulkUploadController,
     ReferenceController,
     ReferenceDetailController,
     NotificationController,
     ReportController
+};
+
+use App\Http\Controllers\PesoSchool\{
+    BulkUploadController,
+    ExcelUploadController
 };
 
 use App\Http\Controllers\Setting\{
@@ -83,7 +87,10 @@ Route::middleware(['system.key', 'throttle:100,1'])->group(function () {
         // Profile Menus
         Route::apiResource('messages', MessageController::class);
         Route::apiResource('user-logs', UserLogController::class);
+
+        // Peso School Menus
         Route::apiResource('bulk-uploads', BulkUploadController::class);
+        Route::apiResource('excel-uploads', ExcelUploadController::class);
 
         Route::post('change-password', [ProfileSettingController::class, 'changePassword']);
         Route::post('job-expriences', [ProfileSettingController::class, 'storeJobExpriences']);
@@ -92,10 +99,12 @@ Route::middleware(['system.key', 'throttle:100,1'])->group(function () {
         Route::get('request-data/{type}', [FetchServiceController::class, 'requestData']);
 
         Route::get('get-employers', [ReportController::class, 'getEmployers']);
+        Route::get('/generate-single-report', [ReportController::class, 'generateEmpSingleReports']);
+        Route::get('/generate-job-hired', [ReportController::class, 'generateJobHired']);
+        Route::get('/employer-inprogress', [ReportController::class, 'checkEmployerInprogress']);
+
         Route::post('/check-employer-report', [ReportController::class, 'checkEmployerReport']);
         Route::post('/generate-employer-report', [ReportController::class, 'generateEmployerReport']);
-
-        Route::get('/report-progress', [ReportController::class, 'getReportProgress']);
     });
 
     // Public Reqeusts ======================================================

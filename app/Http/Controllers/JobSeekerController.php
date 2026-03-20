@@ -268,7 +268,7 @@ class JobSeekerController extends Controller
                 ],
                 [
                     'cover_letter' => $request->coverLetter,
-                    'status'       => 'pending',
+                    'status'       => '0',
                     'type'         => 'applied',
                 ]
             );

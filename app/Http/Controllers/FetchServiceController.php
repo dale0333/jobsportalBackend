@@ -317,26 +317,35 @@ class FetchServiceController extends Controller
                     ])->where('is_active', true);
 
                     // Optional: sort by seeker services
-                    $services = $user->jobSeeker?->services ?? [];
-                    if (!empty($services)) {
-                        $cases = [];
-                        $params = [];
-                        foreach ($services as $index => $serviceId) {
-                            $id = (int)$serviceId;
-                            $cases[] = "WHEN JSON_CONTAINS(job_sub_category, ?) THEN ?";
-                            $params[] = "\"{$id}\"";
-                            $params[] = $index;
-                        }
-                        $caseSql = "CASE " . implode(' ', $cases) . " ELSE 9999 END";
-                        $vacancyQuery->orderByRaw($caseSql, $params);
-                    }
-                    $vacancyQuery->latest();
-                    $vacancies = $vacancyQuery->limit(5)->get();
-                    $totalVacancies = $vacancyQuery->count(); // Total count of vacancies
+                    // $services = $user->jobSeeker?->services ?? [];
+                    // if (!empty($services)) {
+                    //     $cases = [];
+                    //     $params = [];
+                    //     foreach ($services as $index => $serviceId) {
+                    //         $id = (int)$serviceId;
+                    //         $cases[] = "WHEN JSON_CONTAINS(job_sub_category, ?) THEN ?";
+                    //         $params[] = "\"{$id}\"";
+                    //         $params[] = $index;
+                    //     }
+                    //     $caseSql = "CASE " . implode(' ', $cases) . " ELSE 9999 END";
+                    //     $vacancyQuery->orderByRaw($caseSql, $params);
+                    // }
+                    // $vacancyQuery->latest();
+                    // $vacancies = $vacancyQuery->limit(5)->get();
+                    // $totalVacancies = $vacancyQuery->count();
+
+                    // --- Invited ---
+                    $invitedQuery = JobApplication::where('job_seeker_id', $user->jobSeeker->id)
+                        ->where('type', 'invited')
+                        ->with(['jobVacancy.employer.user'])
+                        ->latest();
+
+                    $invited = $invitedQuery->limit(5)->get();
+                    $totalInvited = $invitedQuery->count();
 
                     // --- Applications ---
                     $applicationsQuery = JobApplication::where('job_seeker_id', $user->jobSeeker->id)
-                        ->whereNotIn('status', ['withdrawn', 'rejected', 'hired'])
+                        ->where('status', '!=', 1)
                         ->with(['jobVacancy.employer.user'])
                         ->latest();
 
@@ -345,7 +354,7 @@ class FetchServiceController extends Controller
 
                     // --- Interviews ---
                     $interviewsQuery = JobApplication::where('job_seeker_id', $user->jobSeeker->id)
-                        ->where('status', 'interview')
+                        ->where('status', '1')
                         ->with(['jobVacancy.employer.user'])
                         ->latest();
 
@@ -359,12 +368,12 @@ class FetchServiceController extends Controller
 
                     // --- Final Data ---
                     $data = [
-                        'vacancies' => $vacancies,
+                        'invites' => $invited,
                         'applications' => $applications,
                         'interviews' => $interviews,
                         'notifications' => $notifications,
 
-                        'total_vacancies' => $totalVacancies,
+                        'total_invites' => $totalInvited,
                         'total_applications' => $totalApplications,
                         'total_interviews' => $totalInterviews,
                         'total_notifications' => $totalNotifications,

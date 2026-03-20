@@ -64,6 +64,7 @@ class JobVacancyController extends Controller
                     });
                 }
             }
+
             $jobs = $query->latest()->paginate($perPage);
 
             $jobs = ([
@@ -107,7 +108,7 @@ class JobVacancyController extends Controller
                 'title'         => $validated['title'],
                 'qualifications' => $validated['qualifications'],
                 'description'   => $validated['description'],
-                'code'          => (string) Str::uuid(),
+                'code'          => Str::upper(Str::random(10)),
 
                 'job_category'    => $validated['job_category'],
                 'job_sub_category' => $validated['job_sub_category'],
@@ -153,7 +154,7 @@ class JobVacancyController extends Controller
                             'job_seeker_id'   => $js->id,
                             'job_vacancy_id'  => $job->id,
                             'type'            => 'matched',
-                            'status'          => 'pending',
+                            'status'          => 0,
                         ]);
                     }
                 }

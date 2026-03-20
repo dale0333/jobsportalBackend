@@ -12,11 +12,11 @@ class JobApplication extends Model
     protected $fillable = [
         'job_seeker_id',
         'job_vacancy_id',
+        'type',
         'cover_letter',
         'status',
-        'interview_status',
-        'finalized_date',
-        'type',
+        'is_accepted',
+        'date_status',
     ];
 
     // Polymorphic relationship for attachments

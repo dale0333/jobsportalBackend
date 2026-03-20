@@ -355,15 +355,12 @@
             <div class="message-box">
                 @php
                     $statusLabels = [
-                        'pending' => 'Application Received',
-                        'processing' => 'Under Review',
-                        'interview' => 'Interview Scheduled',
-                        'accepted' => 'Interview Accepted',
-                        'rescheduled' => 'Interview Rescheduled',
-                        'rejected' => 'Not Qualified',
-                        'withdrawn' => 'Application Withdrawn',
-                        'hired' => 'Congratulations! You are Hired',
-                        'other' => 'Application Updated',
+                        '0' => 'Under Review',
+                        '1' => 'Interview',
+                        '2' => 'Congratulations! You are Hired',
+                        '3' => 'Not Qualified',
+                        '4' => 'For Further Evaluation',
+                        '5' => 'Notified but Non Appearance',
                     ];
 
                     $statusText = $statusLabels[$data['status']] ?? ucfirst($data['status']);

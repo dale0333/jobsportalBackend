@@ -189,7 +189,6 @@ class SeekerAppController extends Controller
                     'job_vacancy' => $jobTitle,
                     'applicant_name' => $applicantName,
                     'status' => $type,
-                    'updated_at' => now()->toDateTimeString(),
                 ]
             );
         }
@@ -210,7 +209,6 @@ class SeekerAppController extends Controller
                     'job_title' => $jobTitle,
                     'company_name' => $companyName,
                     'status' => $type,
-                    'updated_at' => now()->toDateTimeString(),
                     'action_type' => $type,
                 ]
             );
@@ -224,7 +222,6 @@ class SeekerAppController extends Controller
                     'job_title' => $jobTitle,
                     'company_name' => $companyName,
                     'status' => $type,
-                    'updated_at' => now()->toDateTimeString(),
                     'action_type' => $type,
                 ]
             );

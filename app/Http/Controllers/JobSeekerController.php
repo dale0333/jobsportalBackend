@@ -407,7 +407,6 @@ class JobSeekerController extends Controller
             'job_title' => $application->jobVacancy->title,
             'status' => 'submitted',
             'employer_name' => $application->jobVacancy->employer->user->name ?? 'Employer',
-            'updated_at' => now()->toDateTimeString(),
             'action_type' => 'submitted',
         ];
 

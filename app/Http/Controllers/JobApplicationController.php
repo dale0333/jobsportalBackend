@@ -370,8 +370,8 @@ class JobApplicationController extends Controller
 
         // Safer status key mapping
         $statusName = match ($status) {
-            1 => 'interview_date',
-            2 => 'hired_date',
+            '1' => 'interview_date',
+            '2' => 'hired_date',
             default => null,
         };
 
@@ -418,7 +418,6 @@ class JobApplicationController extends Controller
                 'status'        => $statusLabel,
                 $statusName     => $dateStatus,
                 'employer_name' => $application->jobVacancy->employer->user->name ?? 'Employer',
-                'updated_at'    => now()->toDateTimeString(),
             ];
 
             // Email

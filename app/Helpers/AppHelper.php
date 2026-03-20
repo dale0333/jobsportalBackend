@@ -200,12 +200,14 @@ class AppHelper
     public static function statusApplication($type)
     {
         return match ($type) {
-            0 => 'Reviewing',
-            1 => 'Interview',
-            2 => 'Hired',
-            3 => 'Not Qualified',
-            4 => 'For Further Evaluation',
-            5 => 'Notified but Non Appearance',
+            "0" => 'Reviewing',
+            "1" => 'Interview',
+            "2" => 'Hired',
+            "3" => 'Not Qualified',
+            "4" => 'For Further Evaluation',
+            "5" => 'Notified but Non Appearance',
+            "6" => 'Accepted Request',
+            "7" => 'Decline Request',
             default => 'Unknown'
         };
     }

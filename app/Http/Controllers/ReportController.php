@@ -259,157 +259,6 @@ class ReportController extends Controller
         ]);
     }
 
-    private function generateEmploymentReportZip($filters)
-    {
-        $employerIds = $filters['employer_ids'] ?? [];
-        $month = (int)($filters['month'] ?? 0);
-        $year = (int)($filters['year'] ?? 0);
-        $mode = $filters['mode'] ?? null;
-
-        $indirectCategories = ['Security', 'Janitorial', 'Ground', 'Construction', 'Others'];
-
-        $expatNationalities = [
-            'American',
-            'Australian',
-            'British',
-            'Canadian',
-            'Chinese',
-            'Indian',
-            'Israeli',
-            'Japanese',
-            'Korean',
-            'Malaysian',
-            'Russian',
-            'Singaporean',
-            'Taiwanese',
-            'Ukrainian',
-            'Others'
-        ];
-
-        /**
-         * ✅ STEP 1: Get latest month/year if none selected
-         */
-        if (!$month || !$year) {
-            $latest = \App\Models\Reference::orderByDesc('year')
-                ->orderByDesc('month')
-                ->first();
-
-            if ($latest) {
-                $month = $latest->month;
-                $year = $latest->year;
-            }
-        }
-
-        /**
-         * ✅ STEP 2: Build query
-         */
-        $query = Employer::with(['user', 'references.details']);
-
-        if ($mode !== 'all' && !empty($employerIds)) {
-            $query->whereIn('user_id', $employerIds);
-        }
-
-        /**
-         * ✅ STEP 3: Transform data
-         */
-        $results = $query->get()->map(function ($employer) use (
-            $month,
-            $year,
-            $indirectCategories,
-            $expatNationalities,
-        ) {
-
-            // Try selected month/year
-            $currentRefs = $employer->references
-                ->where('month', $month)
-                ->where('year', $year);
-
-            if ($currentRefs->isNotEmpty()) {
-                $details = $currentRefs->pluck('details')->flatten();
-                $remarks = '*';
-                $usedMonth = $month;
-                $usedYear = $year;
-            } else {
-                // fallback to latest per employer
-                $latestRef = $employer->references()
-                    ->orderByDesc('year')
-                    ->orderByDesc('month')
-                    ->first();
-
-                if ($latestRef) {
-                    $details = collect($latestRef->details);
-                    $remarks = '**';
-                    $usedMonth = $latestRef->month;
-                    $usedYear = $latestRef->year;
-                } else {
-                    $details = collect();
-                    $remarks = '^';
-                    $usedMonth = null;
-                    $usedYear = null;
-                }
-            }
-
-            $indirect = $details->whereIn('category', $indirectCategories)->count();
-            $direct   = $details->whereNotIn('category', $indirectCategories)->count();
-            $expat    = $details->whereIn('nationality', $expatNationalities)->count();
-
-            return [
-                'loc_no'   => $employer->locator_number,
-                'company'  => $employer->user->name ?? '',
-                'industry' => $employer->industry,
-                'direct'   => $direct,
-                'indirect' => $indirect,
-                'expat'    => $expat,
-                'total'    => $direct + $indirect + $expat,
-                'remarks'  => $remarks,
-
-                // ✅ Optional (very useful for debugging/reporting)
-                'month_used' => $usedMonth,
-                'year_used'  => $usedYear,
-            ];
-        });
-
-        /**
-         * ✅ STEP 4: Generate Excel (in memory)
-         */
-        $excelData = Excel::raw(
-            new ReferenceEmployerExport($results),
-            \Maatwebsite\Excel\Excel::XLSX
-        );
-
-        /**
-         * ✅ STEP 5: Ensure ZIP directory exists
-         */
-        $zipDir = storage_path('app/public/zip');
-        if (!file_exists($zipDir)) {
-            mkdir($zipDir, 0777, true);
-        }
-
-        /**
-         * ✅ STEP 6: Create ZIP
-         */
-        $zipFileName = ($filters['type'] ?? 'employment') . "-{$year}_{$month}_" . now()->format('Ymd_His') . '.zip';
-        $zipPath = $zipDir . '/' . $zipFileName;
-
-        $zip = new \ZipArchive;
-
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
-            throw new \Exception("Cannot create ZIP file");
-        }
-
-        $zip->addFromString('Employment_Report.xlsx', $excelData);
-        $zip->close();
-
-        /**
-         * ✅ STEP 7: Return download link
-         */
-        return response()->json([
-            'download' => asset("storage/zip/$zipFileName"),
-            'month' => $month,
-            'year' => $year
-        ]);
-    }
-
     private function generateJobVacanciesZip($filters)
     {
         $employerIds = $filters['employer_ids'] ?? [];
@@ -611,47 +460,228 @@ class ReportController extends Controller
         $year = (int)($filters['year'] ?? 0);
         $mode = $filters['mode'] ?? null;
 
-        // Base query
+        /**
+         * ✅ STEP 1: Build query
+         */
         $query = Reference::with('details')
             ->when($month, fn($q) => $q->where('month', $month))
             ->when($year, fn($q) => $q->where('year', $year))
-            ->when(!empty($employerIds) && $mode !== 'all', fn($q) => $q->whereIn('user_id', $employerIds));
+            ->when(
+                !empty($employerIds) && $mode !== 'all',
+                fn($q) => $q->whereIn('user_id', $employerIds)
+            );
 
         $references = $query->get();
 
+        /**
+         * ❌ No data
+         */
         if ($references->isEmpty()) {
             return response()->json([
                 'error' => 'No employer reports found for the selected report type, month & year.'
             ], 404);
         }
 
-        // Flatten all details for export
+        /**
+         * ✅ STEP 2: Flatten all details
+         */
         $allDetails = $references->pluck('details')->flatten();
 
-        // Generate Excel in memory
-        $excelData = Excel::raw(new ReferenceDetailsExport($allDetails), \Maatwebsite\Excel\Excel::XLSX);
-
-        // Ensure ZIP directory exists
-        $zipDir = storage_path('app/public/zip');
-        if (!file_exists($zipDir)) {
-            mkdir($zipDir, 0777, true);
+        if ($allDetails->isEmpty()) {
+            return response()->json([
+                'error' => 'No reference details found.'
+            ], 404);
         }
 
-        // Create ZIP file
-        $zipFileName = $filters['type'] . '-' . now()->format('Ymd_His') . '.zip';
-        $zipPath = $zipDir . '/' . $zipFileName;
+        /**
+         * ✅ STEP 3: Generate Excel (memory)
+         */
+        $excelData = Excel::raw(
+            new ReferenceDetailsExport($allDetails),
+            \Maatwebsite\Excel\Excel::XLSX
+        );
 
-        $zip = new \ZipArchive;
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
-            throw new \Exception("Cannot create ZIP file");
+        /**
+         * ✅ STEP 4: Ensure directory exists
+         */
+        $dir = storage_path('app/public/reports');
+        if (!file_exists($dir)) {
+            mkdir($dir, 0777, true);
         }
 
-        // Add Excel data to ZIP
-        $zip->addFromString('Employment_Report.xlsx', $excelData);
-        $zip->close();
+        /**
+         * ✅ STEP 5: Save Excel file
+         */
+        $fileName = ($filters['type'] ?? 'reference') . '-' . now()->format('Ymd_His') . '.xlsx';
+        $filePath = $dir . '/' . $fileName;
 
+        file_put_contents($filePath, $excelData);
+
+        /**
+         * ✅ STEP 6: Return download link
+         */
         return response()->json([
-            'download' => asset("storage/zip/$zipFileName")
+            'download' => asset("storage/reports/$fileName")
+        ]);
+    }
+
+    private function generateEmploymentReportZip($filters)
+    {
+        $employerIds = $filters['employer_ids'] ?? [];
+        $month = (int)($filters['month'] ?? 0);
+        $year = (int)($filters['year'] ?? 0);
+        $mode = $filters['mode'] ?? null;
+
+        $indirectCategories = ['Security', 'Janitorial', 'Ground', 'Construction', 'Others'];
+
+        $expatNationalities = [
+            'American',
+            'Australian',
+            'British',
+            'Canadian',
+            'Chinese',
+            'Indian',
+            'Israeli',
+            'Japanese',
+            'Korean',
+            'Malaysian',
+            'Russian',
+            'Singaporean',
+            'Taiwanese',
+            'Ukrainian',
+            'Others'
+        ];
+
+        /**
+         * ✅ STEP 1: Get latest month/year if none selected
+         */
+        if (!$month || !$year) {
+            $latest = \App\Models\Reference::orderByDesc('year')
+                ->orderByDesc('month')
+                ->first();
+
+            if ($latest) {
+                $month = $latest->month;
+                $year = $latest->year;
+            }
+        }
+
+        /**
+         * ❌ If still no data
+         */
+        if (!$month || !$year) {
+            return response()->json([
+                'error' => 'No available reference data.'
+            ], 404);
+        }
+
+        /**
+         * ✅ STEP 2: Build query
+         */
+        $query = Employer::with(['user', 'references.details']);
+
+        if ($mode !== 'all' && !empty($employerIds)) {
+            $query->whereIn('user_id', $employerIds);
+        }
+
+        /**
+         * ✅ STEP 3: Transform data
+         */
+        $results = $query->get()->map(function ($employer) use (
+            $month,
+            $year,
+            $indirectCategories,
+            $expatNationalities,
+        ) {
+
+            $currentRefs = $employer->references
+                ->where('month', $month)
+                ->where('year', $year);
+
+            if ($currentRefs->isNotEmpty()) {
+                $details = $currentRefs->pluck('details')->flatten();
+                $remarks = '*';
+                $usedMonth = $month;
+                $usedYear = $year;
+            } else {
+                $latestRef = $employer->references()
+                    ->orderByDesc('year')
+                    ->orderByDesc('month')
+                    ->first();
+
+                if ($latestRef) {
+                    $details = collect($latestRef->details);
+                    $remarks = '**';
+                    $usedMonth = $latestRef->month;
+                    $usedYear = $latestRef->year;
+                } else {
+                    $details = collect();
+                    $remarks = '^';
+                    $usedMonth = null;
+                    $usedYear = null;
+                }
+            }
+
+            $indirect = $details->whereIn('category', $indirectCategories)->count();
+            $direct   = $details->whereNotIn('category', $indirectCategories)->count();
+            $expat    = $details->whereIn('nationality', $expatNationalities)->count();
+
+            return [
+                'loc_no'   => $employer->locator_number,
+                'company'  => $employer->user->name ?? '',
+                'industry' => $employer->industry,
+                'direct'   => $direct,
+                'indirect' => $indirect,
+                'expat'    => $expat,
+                'total'    => $direct + $indirect + $expat,
+                'remarks'  => $remarks,
+                'month_used' => $usedMonth,
+                'year_used'  => $usedYear,
+            ];
+        });
+
+        /**
+         * ❌ If empty results
+         */
+        if ($results->isEmpty()) {
+            return response()->json([
+                'error' => 'No employer reports found.'
+            ], 404);
+        }
+
+        /**
+         * ✅ STEP 4: Generate Excel (in memory)
+         */
+        $excelData = Excel::raw(
+            new ReferenceEmployerExport($results),
+            \Maatwebsite\Excel\Excel::XLSX
+        );
+
+        /**
+         * ✅ STEP 5: Ensure directory exists
+         */
+        $dir = storage_path('app/public/reports');
+        if (!file_exists($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        /**
+         * ✅ STEP 6: Save Excel file
+         */
+        $fileName = ($filters['type'] ?? 'employment') .
+            "-{$year}_{$month}_" . now()->format('Ymd_His') . '.xlsx';
+
+        $filePath = $dir . '/' . $fileName;
+
+        file_put_contents($filePath, $excelData);
+
+        /**
+         * ✅ STEP 7: Return direct download link
+         */
+        return response()->json([
+            'download' => asset("storage/reports/$fileName"),
+            'month' => $month,
+            'year' => $year
         ]);
     }
 

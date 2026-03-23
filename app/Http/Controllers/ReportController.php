@@ -7,7 +7,7 @@ use App\Models\{User, Reference, JobVacancy, Employer, JobApplication};
 use App\Traits\ApiResponseTrait;
 
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\{ReferenceDetailsExport, ReferenceEmployerExport};
+use App\Exports\{ReferenceDetailsExport, ReferenceEmployerExport, EmploymentReportExport};
 
 use ZipArchive;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -191,15 +191,80 @@ class ReportController extends Controller
         }
     }
 
+    // private function generateEmployerPdfReports($filters)
+    // {
+    //     $employerIds = $filters['employer_ids'] ?? [];
+    //     $month = $filters['month'] ?? null;
+    //     $year = $filters['year'] ?? null;
+    //     $type = $filters['type'];
+
+    //     $query = User::with(['reference.details'])->whereIn('id', $employerIds);
+    //     $employers = $query->get();
+
+    //     $map = [
+    //         'FM-CDC-CSRPD-11' => '11',
+    //         'FM-CDC-CSRPD-12' => '12',
+    //         'FM-CDC-CSRPD-13' => '13',
+    //     ];
+
+    //     $display = $map[$type] ?? '11';
+
+    //     // Ensure ZIP folder exists
+    //     $zipDir = storage_path('app/public/zip');
+    //     if (!file_exists($zipDir)) {
+    //         mkdir($zipDir, 0777, true);
+    //     }
+
+    //     $zipFileName = $filters['type'] . '-' . now()->format('Ymd_His') . '.zip';
+    //     $zipPath = $zipDir . '/' . $zipFileName;
+
+    //     $zip = new \ZipArchive;
+    //     if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+    //         throw new \Exception("Cannot create zip file");
+    //     }
+
+    //     foreach ($employers as $employer) {
+    //         // Get reference
+    //         $reference = $employer->reference()
+    //             ->when($month && $year, fn($q) => $q->where('month', $month)->where('year', $year))
+    //             ->orderByDesc('year')
+    //             ->orderByDesc('month')
+    //             ->first();
+
+    //         if (!$reference) continue;
+
+    //         // Load PDF
+    //         $pdf = Pdf::loadView("reports.emp-$display", [
+    //             'title' => $employer->name,
+    //             'generated_at' => now()->format('d F Y'),
+    //             'records' => $reference,
+    //             'filters' => $filters
+    //         ])->setPaper('a4', 'portrait');
+
+    //         $name = preg_replace('/[^A-Za-z0-9\-]/', '-', $employer->name);
+    //         $empId = str_pad($employer->id, 6, '0', STR_PAD_LEFT);
+
+    //         $filename = "{$empId}-{$name}";
+    //         if ($month && $year) {
+    //             $filename .= "-{$year}_{$month}";
+    //         }
+
+    //         $zip->addFromString("{$filename}.pdf", $pdf->output());
+    //     }
+
+    //     $zip->close();
+
+    //     return response()->json([
+    //         'download' => asset("storage/zip/$zipFileName")
+    //     ]);
+    // }
+
     private function generateEmployerPdfReports($filters)
     {
         $employerIds = $filters['employer_ids'] ?? [];
         $month = $filters['month'] ?? null;
         $year = $filters['year'] ?? null;
         $type = $filters['type'];
-
-        $query = User::with(['reference.details'])->whereIn('id', $employerIds);
-        $employers = $query->get();
 
         $map = [
             'FM-CDC-CSRPD-11' => '11',
@@ -209,7 +274,9 @@ class ReportController extends Controller
 
         $display = $map[$type] ?? '11';
 
-        // Ensure ZIP folder exists
+        /**
+         * ✅ Ensure ZIP folder exists
+         */
         $zipDir = storage_path('app/public/zip');
         if (!file_exists($zipDir)) {
             mkdir($zipDir, 0777, true);
@@ -219,28 +286,36 @@ class ReportController extends Controller
         $zipPath = $zipDir . '/' . $zipFileName;
 
         $zip = new \ZipArchive;
+
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             throw new \Exception("Cannot create zip file");
         }
 
-        foreach ($employers as $employer) {
-            // Get reference
+        /**
+         * ✅ Loop employers
+         */
+        foreach ($employerIds as $empIdRaw) {
+
+            $employer = User::with(['reference.details'])->find($empIdRaw);
+            if (!$employer) continue;
+
             $reference = $employer->reference()
-                ->when($month && $year, fn($q) => $q->where('month', $month)->where('year', $year))
+                ->when(
+                    $month && $year,
+                    fn($q) =>
+                    $q->where('month', $month)->where('year', $year)
+                )
                 ->orderByDesc('year')
                 ->orderByDesc('month')
                 ->first();
 
             if (!$reference) continue;
 
-            // Load PDF
-            $pdf = Pdf::loadView("reports.emp-$display", [
-                'title' => $employer->name,
-                'generated_at' => now()->format('d F Y'),
-                'records' => $reference,
-                'filters' => $filters
-            ])->setPaper('a4', 'portrait');
+            $rowCount = $reference->details->count();
 
+            /**
+             * ✅ Clean filename
+             */
             $name = preg_replace('/[^A-Za-z0-9\-]/', '-', $employer->name);
             $empId = str_pad($employer->id, 6, '0', STR_PAD_LEFT);
 
@@ -249,7 +324,36 @@ class ReportController extends Controller
                 $filename .= "-{$year}_{$month}";
             }
 
-            $zip->addFromString("{$filename}.pdf", $pdf->output());
+            /**
+             * 🔥 CONDITION: ONLY FOR TYPE 13
+             */
+            if ($type === 'FM-CDC-CSRPD-13' && $rowCount > 2000) {
+
+                /**
+                 * ✅ Generate Excel instead
+                 */
+                $excelData = Excel::raw(
+                    new EmploymentReportExport($reference, $filters),
+                    \Maatwebsite\Excel\Excel::XLSX
+                );
+
+                $zip->addFromString("{$filename}.xlsx", $excelData);
+            } else {
+
+                /**
+                 * ✅ Generate PDF
+                 */
+                $pdf = Pdf::loadView("reports.emp-$display", [
+                    'title' => $employer->name,
+                    'generated_at' => now()->format('d F Y'),
+                    'records' => $reference,
+                    'filters' => $filters
+                ])->setPaper('a4', 'portrait');
+
+                $zip->addFromString("{$filename}.pdf", $pdf->output());
+
+                unset($pdf);
+            }
         }
 
         $zip->close();
@@ -706,7 +810,6 @@ class ReportController extends Controller
 
         $display = $map[$type] ?? '11';
 
-        // Get reference
         $reference = $employer->reference()
             ->when($month && $year, fn($q) => $q->where('month', $month)->where('year', $year))
             ->orderByDesc('year')
@@ -717,15 +820,27 @@ class ReportController extends Controller
             return response()->json(['error' => 'No reference found for selected month/year'], 404);
         }
 
-        // Generate PDF
+        $rowCount = $reference->details->count();
+        $filters = $request->all();
+
+        if ($type === 'FM-CDC-CSRPD-13' && $rowCount > 2000) {
+            $fileName = 'Employment_Report_' . preg_replace('/[^A-Za-z0-9\-]/', '-', $employer->name) . "_{$month}_{$year}.xlsx";
+            return Excel::download(
+                new \App\Exports\EmploymentReportExport($reference, $filters),
+                $fileName,
+                \Maatwebsite\Excel\Excel::XLSX
+            );
+        }
+
         $pdf = Pdf::loadView("reports.emp-$display", [
             'title' => $employer->name,
             'generated_at' => now()->format('d F Y'),
             'records' => $reference,
-            'filters' => $request->all()
+            'filters' => $filters
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream(); // stream PDF directly
+        $fileName = preg_replace('/[^A-Za-z0-9\-]/', '-', $employer->name) . "_{$month}_{$year}.pdf";
+        return $pdf->stream($fileName, ['Content-Type' => 'application/pdf']);
     }
 
     public function generateJobHired(Request $request)

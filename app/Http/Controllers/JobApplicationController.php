@@ -188,6 +188,7 @@ class JobApplicationController extends Controller
             $application->update([
                 'status' => $validated['status'],
                 'type'   => 'applied',
+                'is_accepted' => 0,
                 'date_status' => $validated['finalized_date'] ?? null,
             ]);
 

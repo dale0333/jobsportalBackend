@@ -173,6 +173,12 @@ class SeekerAppController extends Controller
         $title = "Application Update";
         $statusLabel = ucfirst($type);
 
+        $actionText = match ($type) {
+            'accept' => 'Accepted',
+            'decline' => 'Declined',
+            default => $type,
+        };
+
         // ------------------------------
         // Employer notification
         // ------------------------------
@@ -188,7 +194,7 @@ class SeekerAppController extends Controller
                 [
                     'job_vacancy' => $jobTitle,
                     'applicant_name' => $applicantName,
-                    'status' => $type,
+                    'status' => $actionText,
                 ]
             );
         }
@@ -208,8 +214,7 @@ class SeekerAppController extends Controller
                 [
                     'job_title' => $jobTitle,
                     'company_name' => $companyName,
-                    'status' => $type,
-                    'action_type' => $type,
+                    'status' => $actionText,
                 ]
             );
 
@@ -221,8 +226,7 @@ class SeekerAppController extends Controller
                 [
                     'job_title' => $jobTitle,
                     'company_name' => $companyName,
-                    'status' => $type,
-                    'action_type' => $type,
+                    'status' => $actionText,
                 ]
             );
         }

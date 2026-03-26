@@ -312,8 +312,18 @@ class JobApplicationController extends Controller
     private function storeNotificationInvite($applications, $job, $status, $action, $request, $updatedCount, $notes)
     {
         foreach ($applications as $application) {
-            $title = "Application has been " . ucfirst($status);
-            $message = 'Your Application has been ' . ucfirst($status) . ' invitations for ' . $job->title;
+
+            $title = "Your application is now " . ucfirst($status);
+
+            $message = $notes
+                ? $notes
+                : 'Your application has been ' . ucfirst($status) . ' for ' . $job->title;
+
+            $data = [
+                'job_title' => $job->title,
+                'application_status' => ucfirst($status),
+                'employer_name' => $job->employer->user->name ?? 'Employer',
+            ];
 
             // Email Notification
             SendApplicationStatusNotification::dispatch(
@@ -321,28 +331,16 @@ class JobApplicationController extends Controller
                 'application_type_update',
                 $title,
                 $message,
-                [
-                    'job_title' => $job->title,
-                    'remarks' => $notes,
-                    'status' => $status,
-                    'employer_name' => $job->employer->user->name ?? 'Employer',
-                    'action_type' => $status,
-
-                ]
+                $data
             );
 
-            // System Notification to Job Seeker
+            // System Notification
             AppHelper::systemNotificaiton(
                 $application->jobSeeker->user,
                 'application_type_update',
                 $title,
                 $message,
-                [
-                    'job_title' => $job->title,
-                    'remarks' => $notes,
-                    'status' => $status,
-                    'employer_name' => $job->employer->user->name ?? 'Employer',
-                ]
+                $data
             );
         }
 

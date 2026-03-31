@@ -215,14 +215,14 @@ return new class extends Migration
         Schema::create('peso_students', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->index();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->string('name')->nullable();
+            $table->string('email')->nullable();
+            $table->string('gender')->nullable();
             $table->string('contact')->nullable();
             $table->string('education_level')->nullable();
             $table->string('field_of_study')->nullable();
-            $table->json('skills')->nullable();
-            $table->json('type')->nullable();
+            $table->string('skills')->nullable();
+            $table->string('type')->nullable();
             $table->timestamps();
         });
     }

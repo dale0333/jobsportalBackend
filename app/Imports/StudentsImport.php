@@ -48,11 +48,6 @@ class StudentsImport implements ToCollection
                     throw new \Exception("Invalid category: {$row[0]}");
                 }
 
-                // Optional: prevent duplicate email
-                if (PesoStudent::where('email', $row[2])->exists()) {
-                    throw new \Exception("Email already exists: {$row[2]}");
-                }
-
                 // Save to DB
                 PesoStudent::create([
                     'user_id' => $this->user_id,

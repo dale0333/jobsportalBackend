@@ -101,6 +101,11 @@ class JobVacancy extends Model
         return $this->hasMany(JobApplication::class, 'job_vacancy_id');
     }
 
+    public function pesoStudents()
+    {
+        return $this->hasMany(PesoStudent::class, 'type', 'job_category');
+    }
+
     public function applicants()
     {
         return $this->belongsToMany(JobSeeker::class, 'job_applications')

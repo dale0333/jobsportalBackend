@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Models\Category;
+use App\Models\{Category, SubAttribute};
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -17,10 +17,12 @@ use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 class StudentsExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths, WithEvents
 {
     protected $categories;
+    protected $educations;
 
     public function __construct()
     {
         $this->categories = Category::all();
+        $this->educations = SubAttribute::where('attribute_id', 2)->get();
     }
 
     /**
@@ -127,6 +129,7 @@ class StudentsExport implements FromArray, WithHeadings, WithStyles, WithColumnW
 
                 // Get all category names for dropdown
                 $categoryNames = $this->categories->pluck('name')->toArray();
+                $educationNames = $this->educations->pluck('name')->toArray();
 
                 // Create a hidden sheet for dropdown values
                 $sheet->getParent()->createSheet();
@@ -137,6 +140,10 @@ class StudentsExport implements FromArray, WithHeadings, WithStyles, WithColumnW
                 // Put category names in hidden sheet
                 foreach ($categoryNames as $index => $category) {
                     $hiddenSheet->setCellValue('A' . ($index + 1), $category);
+                }
+
+                foreach ($educationNames as $index => $education) {
+                    $hiddenSheet->setCellValue('B' . ($index + 1), $education);
                 }
 
                 // Go back to main sheet
@@ -156,6 +163,21 @@ class StudentsExport implements FromArray, WithHeadings, WithStyles, WithColumnW
 
                     // Reference the hidden sheet
                     $validation->setFormula1('HIDDEN_CATEGORIES!$A$1:$A$' . count($categoryNames));
+                }
+
+                // Apply dropdown for Education Level column (F)
+                for ($row = 3; $row <= 100; $row++) {
+                    $validation = $sheet->getCell('F' . $row)->getDataValidation();
+                    $validation->setType(DataValidation::TYPE_LIST);
+                    $validation->setErrorStyle(DataValidation::STYLE_STOP);
+                    $validation->setAllowBlank(true); // optional field
+                    $validation->setShowDropDown(true);
+                    $validation->setErrorTitle('Invalid Education');
+                    $validation->setError('Please select a valid education level');
+                    $validation->setPromptTitle('Select Education');
+                    $validation->setPrompt('Choose from dropdown');
+
+                    $validation->setFormula1('HIDDEN_CATEGORIES!$B$1:$B$' . count($educationNames));
                 }
 
                 // Apply dropdown for Gender column (D)

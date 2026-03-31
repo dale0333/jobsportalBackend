@@ -31,18 +31,14 @@ class JobVacancyController extends Controller
                 'jobExperience',
                 'ratings',
                 'employer.user',
+                'pesoStudents',
             ])
                 ->withCount([
                     'jobApplications',
-                    'jobApplications as applied_count' => function ($q) {
-                        $q->where('type', 'applied');
-                    },
-                    'jobApplications as matched_count' => function ($q) {
-                        $q->where('type', 'matched');
-                    },
-                    'jobApplications as invited_count' => function ($q) {
-                        $q->where('type', 'invited');
-                    },
+                    'jobApplications as applied_count' => fn($q) => $q->where('type', 'applied'),
+                    'jobApplications as matched_count' => fn($q) => $q->where('type', 'matched'),
+                    'jobApplications as invited_count' => fn($q) => $q->where('type', 'invited'),
+                    'pesoStudents as peso_count',
                 ]);
 
             if ($type !== 'admin') {
@@ -249,18 +245,14 @@ class JobVacancyController extends Controller
                 'jobExperience',
                 'ratings',
                 'employer.user',
+                'pesoStudents',
             ])
                 ->withCount([
                     'jobApplications',
-                    'jobApplications as applied_count' => function ($q) {
-                        $q->where('type', 'applied');
-                    },
-                    'jobApplications as matched_count' => function ($q) {
-                        $q->where('type', 'matched');
-                    },
-                    'jobApplications as invited_count' => function ($q) {
-                        $q->where('type', 'invited');
-                    },
+                    'jobApplications as applied_count' => fn($q) => $q->where('type', 'applied'),
+                    'jobApplications as matched_count' => fn($q) => $q->where('type', 'matched'),
+                    'jobApplications as invited_count' => fn($q) => $q->where('type', 'invited'),
+                    'pesoStudents as peso_count',
                 ])
                 ->where('code', $code)
                 ->first();

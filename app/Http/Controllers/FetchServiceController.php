@@ -306,15 +306,15 @@ class FetchServiceController extends Controller
                     $user = $request->user();
 
                     // --- Vacancies ---
-                    $vacancyQuery = JobVacancy::with([
-                        'category',
-                        'jobLocation',
-                        'jobType',
-                        'jobQualify',
-                        'jobLevel',
-                        'jobExperience',
-                        'employer.user'
-                    ])->where('is_active', true);
+                    // $vacancyQuery = JobVacancy::with([
+                    //     'category',
+                    //     'jobLocation',
+                    //     'jobType',
+                    //     'jobQualify',
+                    //     'jobLevel',
+                    //     'jobExperience',
+                    //     'employer.user'
+                    // ])->where('is_active', true);
 
                     // Optional: sort by seeker services
                     // $services = $user->jobSeeker?->services ?? [];

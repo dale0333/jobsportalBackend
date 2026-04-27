@@ -4,15 +4,16 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\LocatorImport;
+use App\Imports\EmployerImport;
+
 
 class LocatorSeeder extends Seeder
 {
     public function run()
     {
         Excel::import(
-            new LocatorImport(),
-            database_path('seeders/data/locators.xlsx')
+            new EmployerImport(),
+            database_path('seeders/data/employer.xlsx')
         );
     }
 }

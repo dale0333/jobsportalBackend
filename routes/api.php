@@ -130,3 +130,6 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 
 // Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
 //     ->name('verification.resend');
+
+
+// Route::get('/update-employer', [EmailVerificationController::class, 'updateEmployer']);
